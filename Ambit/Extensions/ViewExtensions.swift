@@ -6,31 +6,65 @@
 //
 
 import SwiftUI
+import UIKit
+
+// MARK: - Environment Keys
+
+private struct AmbitAccentColorKey: EnvironmentKey {
+    static let defaultValue: Color = .accentColor
+}
+
+private struct AmbitTextPrimaryKey: EnvironmentKey {
+    static let defaultValue: Color = .primary
+}
+
+private struct AmbitTextSecondaryKey: EnvironmentKey {
+    static let defaultValue: Color = .secondary
+}
+
+extension EnvironmentValues {
+    var ambitAccentColor: Color {
+        get { self[AmbitAccentColorKey.self] }
+        set { self[AmbitAccentColorKey.self] = newValue }
+    }
+    
+    var ambitTextPrimary: Color {
+        get { self[AmbitTextPrimaryKey.self] }
+        set { self[AmbitTextPrimaryKey.self] = newValue }
+    }
+    
+    var ambitTextSecondary: Color {
+        get { self[AmbitTextSecondaryKey.self] }
+        set { self[AmbitTextSecondaryKey.self] = newValue }
+    }
+}
 
 // MARK: - View Extensions
 
 extension View {
     // MARK: - Conditional Modifiers
 
-    @ViewBuilder
     func `if`<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
-        if condition {
-            transform(self)
-        } else {
-            self
+        Group {
+            if condition {
+                transform(self)
+            } else {
+                self
+            }
         }
     }
 
-    @ViewBuilder
     func `if`<TrueContent: View, FalseContent: View>(
         _ condition: Bool,
         if transform: (Self) -> TrueContent,
         else elseTransform: (Self) -> FalseContent
     ) -> some View {
-        if condition {
-            transform(self)
-        } else {
-            elseTransform(self)
+        Group {
+            if condition {
+                transform(self)
+            } else {
+                elseTransform(self)
+            }
         }
     }
 
@@ -87,11 +121,13 @@ extension View {
     // MARK: - Accessibility
 
     func customAccessibilityLabel(_ label: String, hint: String? = nil) -> some View {
-        if let hint = hint {
-            return AnyView(self.accessibilityLabel(label)
-                .accessibilityHint(hint))
-        } else {
-            return AnyView(self.accessibilityLabel(label))
+        Group {
+            if let hint = hint {
+                self.accessibilityLabel(label)
+                    .accessibilityHint(hint)
+            } else {
+                self.accessibilityLabel(label)
+            }
         }
     }
 
@@ -226,17 +262,6 @@ struct HapticFeedbackModifier: ViewModifier {
     }
 }
 
-// MARK: - Shape Extensions
-
-extension Shape {
-    func fill<S: ShapeStyle>(_ style: S, strokeBorder strokeColor: Color, lineWidth: CGFloat = 1) -> some View {
-        ZStack {
-            self.fill(style)
-            self.stroke(strokeColor, lineWidth: lineWidth)
-        }
-    }
-}
-
 // MARK: - Color Extensions for SwiftUI
 
 extension Color {
@@ -327,10 +352,19 @@ extension EnvironmentValues {
         get { self[CustomAccentColorKey.self] }
         set { self[CustomAccentColorKey.self] = newValue }
     }
+    
+    var ambitTheme: AmbitAppearanceMode {
+        get { self[AmbitThemeKey.self] }
+        set { self[AmbitThemeKey.self] = newValue }
+    }
 }
 
 private struct CustomAccentColorKey: EnvironmentKey {
     static let defaultValue: Color = .blue
+}
+
+private struct AmbitThemeKey: EnvironmentKey {
+    static let defaultValue: AmbitAppearanceMode = .studio
 }
 
 // MARK: - View Modifier for Custom Environment

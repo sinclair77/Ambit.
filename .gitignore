@@ -1,0 +1,32 @@
+# Xcode project user data
+xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcuserstate
+*.pbxuser
+*.mode1v3
+*.mode2v3
+
+# Build output
+build/
+DerivedData/
+
+# Swift Package Manager
+.swiftpm/
+.build/
+
+# Dependency managers
+Pods/
+Carthage/
+
+# macOS metadata
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Logs
+*.log
+
+# Misc
+*.moved-aside
+*.swp
+*.kate-swp

@@ -33,4 +33,8 @@ final class HapticManager {
         generator.prepare()
         generator.notificationOccurred(type)
     }
+
+    func setEnabled(_ enabled: Bool) {
+        defaults.set(enabled, forKey: hapticsPreferenceKey)
+    }
 }

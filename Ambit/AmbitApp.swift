@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UIKit
 
 @main
 struct AmbitApp: App {
@@ -7,6 +8,8 @@ struct AmbitApp: App {
         // Register custom value transformers early so SwiftData can resolve them
         ColorArrayTransformer.register()
         UnitPointTransformer.register()
+        // Force UIKit-backed text views to push long words instead of hyphenating them
+        UILabel.appearance().lineBreakStrategy = .pushOut
     }
     
     var body: some Scene {

@@ -224,59 +224,59 @@ enum ColorVisionSimulator {
 
     // MARK: - Vision Simulation Metadata
 
-    static func getVisionTypeInfo(_ type: VisionType) -> VisionTypeInfo {
+    static func getVisionTypeInfo(_ type: VisionType) -> ColorVisionTypeInfo {
         switch type {
         case .normal:
-            return VisionTypeInfo(
+            return ColorVisionTypeInfo(
                 name: "Normal Vision",
                 description: "Standard human color vision",
                 prevalence: "Standard",
                 characteristics: "Full color perception across visible spectrum"
             )
         case .protanopia:
-            return VisionTypeInfo(
+            return ColorVisionTypeInfo(
                 name: "Protanopia",
                 description: "Red-blind color vision deficiency",
                 prevalence: "1.3% of males, 0.02% of females",
                 characteristics: "Difficulty distinguishing red and green hues"
             )
         case .deuteranopia:
-            return VisionTypeInfo(
+            return ColorVisionTypeInfo(
                 name: "Deuteranopia",
                 description: "Green-blind color vision deficiency",
                 prevalence: "1.2% of males, 0.01% of females",
                 characteristics: "Difficulty distinguishing red and green hues"
             )
         case .tritanopia:
-            return VisionTypeInfo(
+            return ColorVisionTypeInfo(
                 name: "Tritanopia",
                 description: "Blue-blind color vision deficiency",
                 prevalence: "0.003% of population",
                 characteristics: "Difficulty distinguishing blue and yellow hues"
             )
         case .achromatopsia:
-            return VisionTypeInfo(
+            return ColorVisionTypeInfo(
                 name: "Achromatopsia",
                 description: "Complete color blindness",
                 prevalence: "0.00003% of population",
                 characteristics: "No color perception, only shades of gray"
             )
         case .protanomaly:
-            return VisionTypeInfo(
+            return ColorVisionTypeInfo(
                 name: "Protanomaly",
                 description: "Reduced red sensitivity",
                 prevalence: "1.3% of males, 0.02% of females",
                 characteristics: "Reduced sensitivity to red light"
             )
         case .deuteranomaly:
-            return VisionTypeInfo(
+            return ColorVisionTypeInfo(
                 name: "Deuteranomaly",
                 description: "Reduced green sensitivity",
                 prevalence: "5.0% of males, 0.35% of females",
                 characteristics: "Reduced sensitivity to green light"
             )
         case .tritanomaly:
-            return VisionTypeInfo(
+            return ColorVisionTypeInfo(
                 name: "Tritanomaly",
                 description: "Reduced blue sensitivity",
                 prevalence: "0.01% of population",
@@ -322,7 +322,7 @@ enum ConfusionSeverity {
     }
 }
 
-struct VisionTypeInfo {
+struct ColorVisionTypeInfo {
     let name: String
     let description: String
     let prevalence: String

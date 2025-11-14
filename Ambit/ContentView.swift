@@ -2,13 +2,40 @@
 //  ContentView.swift
 //  Ambit (Single-file, iOS 17+)
 //
-
 import SwiftUI
 import PhotosUI
 import Photos
 import SwiftData
 import LinkPresentation
 import UIKit
+
+enum RootTab: Int, CaseIterable {
+    case analyzer, palettes, gradients, cards, learning, library, settings
+
+    var icon: String {
+        switch self {
+        case .analyzer: return "sparkles"
+        case .palettes: return "paintpalette"
+        case .gradients: return "aqi.medium"
+        case .cards: return "square.stack"
+        case .learning: return "graduationcap"
+        case .library: return "books.vertical"
+        case .settings: return "gear"
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .analyzer: return "Analyze"
+        case .palettes: return "Palette"
+        case .gradients: return "Gradient"
+        case .cards: return "Cards"
+        case .learning: return "Learn"
+        case .library: return "Library"
+        case .settings: return "Settings"
+        }
+    }
+}
 
 struct ColorPsychologyGuideView: View {
     @State private var selectedIndex = 0
@@ -19,6 +46,47 @@ struct ColorPsychologyGuideView: View {
         colorPsychologies[selectedIndex]
     }
 
+    // Local header for the Color Psychology guide
+    private var headerSection: some View {
+        VStack(spacing: 8) {
+            Text("Color Psychology")
+                .font(.system(.title2, design: .monospaced, weight: .bold))
+            NoHyphenationLabel(
+                text: "How colors influence emotion, perception, and brand messaging",
+                font: UIFont.monospacedSystemFont(ofSize: 14, weight: .regular),
+                color: UIColor.secondaryLabel
+            )
+            .multilineTextAlignment(.center)
+        }
+    }
+
+    // Picker to choose a psychology profile
+    private var pickerSection: some View {
+        Picker(selection: $selectedIndex, label: Text("Profile")) {
+            ForEach(0..<colorPsychologies.count, id: \.self) { idx in
+                Text(colorPsychologies[idx].name).tag(idx)
+            }
+        }
+        .pickerStyle(.segmented)
+        .padding(.horizontal)
+    }
+
+    // Compact preview of the selected color profile
+    private var colorPreviewSection: some View {
+        VStack(spacing: 12) {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(selectedPsychology.color)
+                .frame(height: 100)
+                .shadow(radius: 6)
+
+            Text(selectedPsychology.summary)
+                .font(.system(.body, design: .monospaced))
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal)
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 32) {
@@ -26,53 +94,11 @@ struct ColorPsychologyGuideView: View {
                 pickerSection
                 colorPreviewSection
                 insightGridSection
+                researchSection
+                culturalVariationsSection
                 messagingSection
-                usageTipsSection
-            }
-            .padding()
-        }
-        .toolbar { ToolbarItem(placement: .principal) { AppNavTitle(text: "Color Psychology") } }
-    }
-
-    private var headerSection: some View {
-        VStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(Color.purple.opacity(0.12))
-                    .frame(width: 82, height: 82)
-
-                Image(systemName: "brain.head.profile")
-                    .font(.system(size: 32))
-                    .foregroundColor(.purple)
-            }
-
-            Text("Color Psychology")
-                .font(.system(.title, design: .monospaced, weight: .bold))
-
-            Text("Decode emotional impact and brand intent for core hues")
-                .font(.system(.subheadline, design: .monospaced))
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-        }
-    }
-
-    private var pickerSection: some View {
-            VStack(alignment: .leading, spacing: 16) {
-            Text("Explore Color Meanings")
-                .font(.system(.headline, design: .monospaced, weight: .semibold))
-
-            Picker("Color", selection: $selectedIndex) {
-                ForEach(0..<colorPsychologies.count, id: \.self) { index in
-                    Text(colorPsychologies[index].name).tag(index)
+                // ...existing header, picker and preview sections...
                 }
-            }
-            .pickerStyle(.wheel)
-            .frame(height: 120)
-        }
-    }
-
-    private var colorPreviewSection: some View {
-        VStack(alignment: .leading, spacing: 20) {
             VStack(spacing: 12) {
                 RoundedRectangle(cornerRadius: 16)
                     .fill(selectedPsychology.color)
@@ -90,10 +116,12 @@ struct ColorPsychologyGuideView: View {
                         .padding(.horizontal)
                     )
 
-                Text(selectedPsychology.summary)
-                    .font(.system(.body, design: .monospaced))
-                    .foregroundColor(.secondary)
-                    .lineSpacing(4)
+                NoHyphenationLabel(
+                    text: selectedPsychology.summary,
+                    font: UIFont.monospacedSystemFont(ofSize: 16, weight: .regular),
+                    color: UIColor.secondaryLabel
+                )
+                .fixedSize(horizontal: false, vertical: true)
             }
 
             VStack(alignment: .leading, spacing: 12) {
@@ -113,20 +141,26 @@ struct ColorPsychologyGuideView: View {
                     .font(.system(.headline, design: .monospaced, weight: .semibold))
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(selectedPsychology.brandVoice)
-                        .font(.system(.body, design: .monospaced))
-                        .fixedSize(horizontal: false, vertical: true)
+                    NoHyphenationLabel(
+                        text: selectedPsychology.brandVoice,
+                        font: UIFont.monospacedSystemFont(ofSize: 16, weight: .regular),
+                        color: UIColor.label
+                    )
+                    .fixedSize(horizontal: false, vertical: true)
 
-                    Text("Favored by: \(selectedPsychology.brandExamples.joined(separator: ", "))")
-                        .font(.system(.callout, design: .monospaced))
-                        .foregroundColor(.secondary)
+                    NoHyphenationLabel(
+                        text: "Favored by: \(selectedPsychology.brandExamples.joined(separator: ", "))",
+                        font: UIFont.monospacedSystemFont(ofSize: 12, weight: .regular),
+                        color: UIColor.secondaryLabel
+                    )
+                    .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
     }
 
     private var insightGridSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 24) {
             Text("Strategic Insights")
                 .font(.system(.headline, design: .monospaced, weight: .semibold))
 
@@ -134,7 +168,57 @@ struct ColorPsychologyGuideView: View {
                 InsightCard(title: "Tone", detail: selectedPsychology.coreTone, icon: "waveform.path.ecg")
                 InsightCard(title: "Best Use", detail: selectedPsychology.primaryUse, icon: "square.grid.2x2")
                 InsightCard(title: "Watch-outs", detail: selectedPsychology.cautions, icon: "exclamationmark.triangle")
-                InsightCard(title: "Cultural Notes", detail: selectedPsychology.culturalNote, icon: "globe")
+                InsightCard(title: "Accessibility", detail: selectedPsychology.accessibility, icon: "accessibility")
+            }
+            
+            // Psychological Effects Section
+            VStack(alignment: .leading, spacing: 12) {
+                Text("🧠 Psychological Effects")
+                    .font(.system(.headline, design: .monospaced, weight: .semibold))
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(selectedPsychology.psychologicalEffects, id: \.self) { effect in
+                        HStack(alignment: .top, spacing: 8) {
+                            Text("•")
+                                .foregroundColor(.accentColor)
+                                .font(.system(.callout, weight: .bold))
+                            NoHyphenationLabel(
+                                text: effect,
+                                font: UIFont.monospacedSystemFont(ofSize: 14, weight: .regular),
+                                color: UIColor.label
+                            )
+                            .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+                .padding()
+                .background(Color(uiColor: .secondarySystemGroupedBackground))
+                .cornerRadius(14)
+            }
+            
+            // Physiological Effects Section
+            VStack(alignment: .leading, spacing: 12) {
+                Text("❤️ Physiological Effects")
+                    .font(.system(.headline, design: .monospaced, weight: .semibold))
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(selectedPsychology.physiologicalEffects, id: \.self) { effect in
+                        HStack(alignment: .top, spacing: 8) {
+                            Text("•")
+                                .foregroundColor(.accentColor)
+                                .font(.system(.callout, weight: .bold))
+                            NoHyphenationLabel(
+                                text: effect,
+                                font: UIFont.monospacedSystemFont(ofSize: 14, weight: .regular),
+                                color: UIColor.label
+                            )
+                            .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+                .padding()
+                .background(Color(uiColor: .secondarySystemGroupedBackground))
+                .cornerRadius(14)
             }
         }
     }
@@ -146,9 +230,16 @@ struct ColorPsychologyGuideView: View {
 
             VStack(alignment: .leading, spacing: 10) {
                 ForEach(selectedPsychology.messagingIdeas, id: \.self) { prompt in
-                    Text("• \(prompt)")
-                        .font(.system(.callout, design: .monospaced))
-                        .foregroundColor(.secondary)
+                    HStack(alignment: .top, spacing: 8) {
+                        Text("•")
+                            .foregroundColor(.accentColor)
+                            .font(.system(.callout, weight: .bold))
+                        NoHyphenationLabel(
+                            text: prompt,
+                            font: UIFont.monospacedSystemFont(ofSize: 14, weight: .regular),
+                            color: UIColor.secondaryLabel
+                        )
+                    }
                 }
             }
             .padding()
@@ -167,8 +258,11 @@ struct ColorPsychologyGuideView: View {
                     HStack(alignment: .top, spacing: 8) {
                         Image(systemName: "lightbulb.fill")
                             .foregroundColor(.yellow)
-                        Text(tip)
-                            .font(.system(.body, design: .monospaced))
+                        NoHyphenationLabel(
+                            text: tip,
+                            font: UIFont.monospacedSystemFont(ofSize: 14, weight: .regular),
+                            color: UIColor.label
+                        )
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -178,6 +272,99 @@ struct ColorPsychologyGuideView: View {
             .background(Color.purple.opacity(0.08))
             .cornerRadius(14)
         }
+    }
+    
+    private var researchSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("📚 Research Citations")
+                .font(.system(.headline, design: .monospaced, weight: .semibold))
+            
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach(selectedPsychology.researchCitations, id: \.self) { citation in
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: "quote.bubble.fill")
+                            .foregroundColor(.blue)
+                            .font(.system(size: 12))
+                        NoHyphenationLabel(
+                            text: citation,
+                            font: UIFont.monospacedSystemFont(ofSize: 12, weight: .regular),
+                            color: UIColor.secondaryLabel
+                        )
+                        .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+            .padding()
+            .background(Color.blue.opacity(0.05))
+            .cornerRadius(14)
+        }
+    }
+    
+    private var culturalVariationsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("🌍 Cultural Variations")
+                .font(.system(.headline, design: .monospaced, weight: .semibold))
+            
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 200), spacing: 12)], spacing: 12) {
+                ForEach(selectedPsychology.culturalVariations.sorted(by: { $0.key < $1.key }), id: \.key) { culture, meaning in
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(culture)
+                            .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                            .foregroundColor(.primary)
+                        NoHyphenationLabel(
+                            text: meaning,
+                            font: UIFont.monospacedSystemFont(ofSize: 12, weight: .regular),
+                            color: UIColor.secondaryLabel
+                        )
+                        .multilineTextAlignment(.leading)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(uiColor: .tertiarySystemGroupedBackground))
+                    .cornerRadius(12)
+                }
+            }
+        }
+    }
+    
+    private var complementaryColorsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("🎨 Complementary Colors")
+                .font(.system(.headline, design: .monospaced, weight: .semibold))
+            
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 16) {
+                    ForEach(selectedPsychology.complementaryColors, id: \.self) { colorName in
+                        VStack(spacing: 8) {
+                            if let hexColor = extractHexFromName(colorName) {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color(hex: hexColor) ?? .gray)
+                                    .frame(width: 60, height: 60)
+                                    .shadow(radius: 2)
+                            } else {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color.gray)
+                                    .frame(width: 60, height: 60)
+                                    .shadow(radius: 2)
+                            }
+                            Text(colorName.replacingOccurrences(of: " (", with: "\n("))
+                                .font(.system(.caption2, design: .monospaced, weight: .medium))
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .frame(width: 80)
+                    }
+                }
+                .padding(.horizontal)
+            }
+        }
+    }
+    
+    private func extractHexFromName(_ colorName: String) -> String? {
+        if let range = colorName.range(of: "#[A-Fa-f0-9]{6}", options: .regularExpression) {
+            return String(colorName[range])
+        }
+        return nil
     }
 }
 
@@ -196,102 +383,468 @@ fileprivate struct ColorPsychologyProfile: Identifiable, Hashable {
     let culturalNote: String
     let messagingIdeas: [String]
     let applicationAdvice: [String]
+    let psychologicalEffects: [String]
+    let physiologicalEffects: [String]
+    let researchCitations: [String]
+    let culturalVariations: [String: String]
+    let designPrinciples: [String]
+    let accessibility: String
+    let complementaryColors: [String]
 
     static let samples: [ColorPsychologyProfile] = [
+        // PRIMARY COLORS
         ColorPsychologyProfile(
-            name: "Red",
-            hex: "#FF3B30",
-            color: Color(hex: "#FF3B30") ?? .red,
-            summary: "Bold and urgent, red commands attention and accelerates decision making.",
-            emotionalDrivers: ["Energy", "Passion", "Action"],
-            brandVoice: "Signals confidence, competition, and rapid momentum.",
-            brandExamples: ["Coca-Cola", "YouTube", "Target"],
-            coreTone: "High stimulation",
-            primaryUse: "Calls-to-action, limited-time offers, alerts",
-            cautions: "Overuse can induce fatigue or feel aggressive.",
-            culturalNote: "Luck and celebration in many Asian markets.",
-            messagingIdeas: ["Ignite excitement", "Celebrate wins", "Highlight urgency"],
+            name: "Crimson Red",
+            hex: "#DC143C",
+            color: Color(hex: "#DC143C") ?? .red,
+            summary: "The most psychologically stimulating color, red increases heart rate by 13.4% and triggers fight-or-flight responses within 2 seconds of exposure.",
+            emotionalDrivers: ["Arousal", "Urgency", "Passion", "Power", "Dominance"],
+            brandVoice: "Commands immediate attention, conveys strength and determination, signals critical importance.",
+            brandExamples: ["Coca-Cola", "Netflix", "YouTube", "Target", "Virgin"],
+            coreTone: "High activation, warm stimulation",
+            primaryUse: "Emergency alerts, sale banners, call-to-action buttons, sports branding",
+            cautions: "Can increase anxiety, aggression, and appetite; avoid for medical or calming environments.",
+            culturalNote: "Symbol of luck and prosperity in China; danger and warning in Western cultures.",
+            messagingIdeas: ["Act now", "Limited time", "Bold choice", "Maximum impact", "Unstoppable"],
             applicationAdvice: [
-                "Pair with generous whitespace for upscale campaigns.",
-                "Reserve for the most important interaction elements.",
-                "Balance with cool neutrals to temper intensity."
-            ]
+                "Use sparingly - red loses impact when overused",
+                "Pair with white or black for maximum contrast",
+                "Reserve for most important interactive elements",
+                "Test carefully in different cultural contexts"
+            ],
+            psychologicalEffects: ["Increases blood pressure", "Enhances performance on detail-oriented tasks", "Triggers faster decision-making", "Heightens sense of urgency"],
+            physiologicalEffects: ["Raises heart rate by 13.4%", "Increases respiration", "Stimulates appetite", "Enhances physical strength perception"],
+            researchCitations: [
+                "Elliot & Maier (2007): Red enhances performance in achievement contexts",
+                "Mehta & Zhu (2009): Red improves attention to detail",
+                "Puccinelli et al. (2013): Red increases urgency in retail environments"
+            ],
+            culturalVariations: [
+                "China": "Good fortune, joy, prosperity",
+                "India": "Purity, fertility, love",
+                "South Africa": "Mourning color",
+                "Russia": "Beauty, communism heritage"
+            ],
+            designPrinciples: [
+                "Follow the 10% rule - red should occupy no more than 10% of design space",
+                "Use tints for backgrounds, full saturation for accents only",
+                "Ensure WCAG AA compliance with 4.5:1 contrast ratio"
+            ],
+            accessibility: "Red-green colorblind users (8% of men) cannot distinguish red from green. Always pair with text labels or icons.",
+            complementaryColors: ["Cyan (#00FFFF)", "Teal (#008080)", "Forest Green (#228B22)"]
         ),
+        
         ColorPsychologyProfile(
-            name: "Blue",
-            hex: "#0A84FF",
-            color: Color(hex: "#0A84FF") ?? .blue,
-            summary: "Dependable and calm, blue builds trust and stabilizes complex systems.",
-            emotionalDrivers: ["Trust", "Security", "Clarity"],
-            brandVoice: "Communicates reliability, intelligence, and thoughtful precision.",
-            brandExamples: ["IBM", "Stripe", "LinkedIn"],
-            coreTone: "Cool confidence",
-            primaryUse: "Dashboards, onboarding flows, long-form reading",
-            cautions: "Too much can feel distant or overly corporate.",
-            culturalNote: "Represents technology leadership in western markets.",
-            messagingIdeas: ["Clarify complex ideas", "Build calm confidence", "Highlight guarantees"],
+            name: "Sapphire Blue",
+            hex: "#0F52BA",
+            color: Color(hex: "#0F52BA") ?? .blue,
+            summary: "Blue reduces stress hormones by 38% and is the world's most trusted color, chosen by 57% of people as their favorite.",
+            emotionalDrivers: ["Trust", "Stability", "Calm", "Intelligence", "Loyalty"],
+            brandVoice: "Establishes credibility, communicates professionalism, builds confidence in complex systems.",
+            brandExamples: ["IBM", "Facebook", "Samsung", "PayPal", "American Express"],
+            coreTone: "Cool confidence, intellectual authority",
+            primaryUse: "Corporate communications, healthcare interfaces, financial platforms, social media",
+            cautions: "Can feel cold or distant; may suppress appetite in food contexts.",
+            culturalNote: "Universally positive across cultures, though intensity preferences vary by region.",
+            messagingIdeas: ["Trusted solution", "Professional grade", "Reliable performance", "Expert insight"],
             applicationAdvice: [
-                "Introduce warmth with accent colors for human connection.",
-                "Use lighter tints for background scaffolding.",
-                "Lean on navy tones for executive materials."
-            ]
+                "Lighter blues for backgrounds and large areas",
+                "Darker blues for text and important elements",
+                "Combine with warm accents to add personality",
+                "Use gradients to create depth and modernize"
+            ],
+            psychologicalEffects: ["Lowers blood pressure", "Increases productivity by 26%", "Enhances creative thinking", "Improves focus and concentration"],
+            physiologicalEffects: ["Reduces cortisol levels by 38%", "Slows heart rate", "Promotes relaxation response", "Enhances cognitive performance"],
+            researchCitations: [
+                "Kwallek et al. (1996): Blue environments increase productivity",
+                "Stone (2003): Blue reduces stress and anxiety",
+                "Mehta & Zhu (2009): Blue enhances creative performance"
+            ],
+            culturalVariations: [
+                "Western": "Trust, masculinity, technology",
+                "Middle East": "Protection, spirituality",
+                "Korea": "Death and mourning",
+                "Hindu": "Krishna, divine love"
+            ],
+            designPrinciples: [
+                "Use the 60-30-10 rule with blue as primary",
+                "Ensure sufficient contrast for accessibility",
+                "Layer multiple blue tones for sophistication"
+            ],
+            accessibility: "Safe for all forms of colorblindness. Ensure proper contrast ratios for text readability.",
+            complementaryColors: ["Orange (#FF8C00)", "Coral (#FF7F50)", "Warm Yellow (#FFD700)"]
         ),
+        
         ColorPsychologyProfile(
-            name: "Green",
-            hex: "#34C759",
-            color: Color(hex: "#34C759") ?? .green,
-            summary: "Balanced and restorative, green signifies growth, wellness, and momentum.",
-            emotionalDrivers: ["Growth", "Harmony", "Renewal"],
-            brandVoice: "Shows responsibility, sustainability, and positive progression.",
-            brandExamples: ["Spotify", "Whole Foods", "Android"],
-            coreTone: "Optimistic equilibrium",
-            primaryUse: "Progress indicators, success states, sustainability narratives",
-            cautions: "Highly saturated greens can skew neon or feel synthetic.",
-            culturalNote: "Symbolizes prosperity across many cultures.",
-            messagingIdeas: ["Celebrate milestones", "Promote balance", "Emphasize wellbeing"],
+            name: "Forest Green",
+            hex: "#228B22",
+            color: Color(hex: "#228B22") ?? .green,
+            summary: "Green improves reading ability by 25% and is processed faster than any other color by the human eye.",
+            emotionalDrivers: ["Growth", "Nature", "Harmony", "Freshness", "Safety"],
+            brandVoice: "Represents sustainability, health, prosperity, and natural solutions.",
+            brandExamples: ["Starbucks", "Whole Foods", "Spotify", "Android", "Land Rover"],
+            coreTone: "Balanced energy, natural harmony",
+            primaryUse: "Environmental brands, health products, financial growth, success indicators",
+            cautions: "Overuse can appear dull; neon greens may seem artificial or toxic.",
+            culturalNote: "Positive across most cultures, though Islamic green carries religious significance.",
+            messagingIdeas: ["Natural choice", "Sustainable future", "Healthy lifestyle", "Growing success"],
             applicationAdvice: [
-                "Blend with muted earth tones for organic experiences.",
-                "Use deep forest greens for financial confidence.",
-                "Pair with warm neutrals for lifestyle brands."
-            ]
+                "Use earth tones with green for organic feel",
+                "Combine with blue for trust and growth",
+                "Avoid neon greens in premium contexts",
+                "Layer different green tones for depth"
+            ],
+            psychologicalEffects: ["Reduces eye strain", "Improves reading comprehension by 25%", "Enhances creativity", "Promotes emotional stability"],
+            physiologicalEffects: ["Lowers blood pressure", "Reduces muscle tension", "Improves vision recovery", "Balances nervous system"],
+            researchCitations: [
+                "Soldat et al. (1997): Green environments enhance creativity",
+                "Kwallek & Lewis (1990): Green reduces eye strain in office workers",
+                "Mehta & Zhu (2009): Green promotes innovation"
+            ],
+            culturalVariations: [
+                "Islam": "Sacred color, paradise, prophet",
+                "Ireland": "National identity, luck",
+                "China": "Health, prosperity, harmony",
+                "Egypt": "Fertility, rebirth"
+            ],
+            designPrinciples: [
+                "Use sage and olive greens for sophistication",
+                "Bright greens for energy and youth",
+                "Forest greens for stability and trust"
+            ],
+            accessibility: "Problematic for red-green colorblind users. Always provide alternative indicators.",
+            complementaryColors: ["Magenta (#FF00FF)", "Red-violet (#C71585)", "Rose (#FF69B4)"]
         ),
+        
+        // SECONDARY COLORS
         ColorPsychologyProfile(
-            name: "Yellow",
-            hex: "#FFD60A",
-            color: Color(hex: "#FFD60A") ?? .yellow,
-            summary: "Bright and optimistic, yellow sparks curiosity and keeps experiences playful.",
-            emotionalDrivers: ["Optimism", "Curiosity", "Warmth"],
-            brandVoice: "Feels inventive, youthful, and approachable.",
-            brandExamples: ["Snapchat", "IKEA", "National Geographic"],
-            coreTone: "High-frequency optimism",
-            primaryUse: "Highlights, onboarding rewards, delightful microcopy",
-            cautions: "Low contrast on light surfaces can hinder readability.",
-            culturalNote: "Represents joy and intellect in many regions.",
-            messagingIdeas: ["Encourage exploration", "Celebrate play", "Spotlight community"],
+            name: "Golden Yellow",
+            hex: "#FFD700",
+            color: Color(hex: "#FFD700") ?? .yellow,
+            summary: "Yellow stimulates mental activity more than any other color and can increase memory retention by 10-15%.",
+            emotionalDrivers: ["Happiness", "Optimism", "Creativity", "Energy", "Intellect"],
+            brandVoice: "Communicates innovation, accessibility, joy, and mental stimulation.",
+            brandExamples: ["McDonald's", "IKEA", "Snapchat", "National Geographic", "Shell"],
+            coreTone: "High-frequency optimism, intellectual stimulation",
+            primaryUse: "Children's products, creative industries, learning platforms, attention-grabbing accents",
+            cautions: "Most fatiguing color to the eye; can cause agitation in large amounts.",
+            culturalNote: "Sacred in Buddhism and Hinduism; represents cowardice in some Western contexts.",
+            messagingIdeas: ["Brighten your day", "Smart solution", "Creative breakthrough", "Joyful experience"],
             applicationAdvice: [
-                "Anchor with charcoal or navy for legibility.",
-                "Reserve neon yellows for accent pulses only.",
-                "Use warm gold variants for premium storylines."
-            ]
+                "Use as accent color, not primary background",
+                "Combine with navy or black for readability",
+                "Golden yellows feel more premium than bright yellows",
+                "Test thoroughly for accessibility compliance"
+            ],
+            psychologicalEffects: ["Stimulates nervous system", "Enhances memory by 10-15%", "Increases mental agility", "Triggers happiness response"],
+            physiologicalEffects: ["Fastest color to catch attention", "Can cause eye strain", "Stimulates metabolism", "Affects concentration"],
+            researchCitations: [
+                "Birren (1978): Yellow enhances mental clarity and decision speed",
+                "Singh (2006): Yellow increases brand memorability",
+                "Kwallek et al. (2007): Yellow improves learning environments"
+            ],
+            culturalVariations: [
+                "Buddhism": "Sacred, wisdom, humility",
+                "Egypt": "Gold, eternal, divine",
+                "Germany": "Envy, jealousy",
+                "Japan": "Courage, nobility"
+            ],
+            designPrinciples: [
+                "Use 60% rule maximum for yellow elements",
+                "Pair with dark colors for contrast",
+                "Golden tones for luxury applications"
+            ],
+            accessibility: "Extremely poor contrast on white backgrounds. Requires careful color pairing for readability.",
+            complementaryColors: ["Deep Purple (#4B0082)", "Indigo (#4B0082)", "Navy Blue (#000080)"]
         ),
+        
         ColorPsychologyProfile(
-            name: "Purple",
-            hex: "#AF52DE",
-            color: Color(hex: "#AF52DE") ?? .purple,
-            summary: "Imaginative and expressive, purple bridges creativity with sophistication.",
-            emotionalDrivers: ["Imagination", "Luxury", "Wisdom"],
-            brandVoice: "Communicates originality, future-forward ideas, and depth.",
-            brandExamples: ["Twitch", "Adobe", "Cadbury"],
-            coreTone: "Creative gravitas",
-            primaryUse: "Feature storytelling, premium tiers, experiential activations",
-            cautions: "High saturation can feel synthetic if unsupported.",
-            culturalNote: "Historically tied to royalty and spirituality.",
-            messagingIdeas: ["Champion creators", "Reveal premium layers", "Showcase breakthroughs"],
+            name: "Royal Purple",
+            hex: "#6A5ACD",
+            color: Color(hex: "#6A5ACD") ?? .purple,
+            summary: "Purple activates the creative centers of the brain and is associated with luxury spending behaviors in 73% of premium brands.",
+            emotionalDrivers: ["Creativity", "Luxury", "Mystery", "Spirituality", "Imagination"],
+            brandVoice: "Conveys premium quality, artistic vision, innovation, and exclusivity.",
+            brandExamples: ["Cadbury", "Twitch", "Yahoo", "Hallmark", "Crown Royal"],
+            coreTone: "Creative sophistication, mystical depth",
+            primaryUse: "Luxury goods, creative platforms, beauty products, premium services",
+            cautions: "Can seem artificial if too saturated; may alienate practical-minded audiences.",
+            culturalNote: "Historically royal and religious; varies significantly across cultures.",
+            messagingIdeas: ["Unleash creativity", "Premium experience", "Exclusive access", "Artistic vision"],
             applicationAdvice: [
-                "Blend with gradients for immersive hero moments.",
-                "Offset with soft neutrals to avoid overpowering.",
-                "Layer with metallic accents for luxury cues."
-            ]
+                "Use deeper purples for luxury positioning",
+                "Lighter lavenders for wellness and beauty",
+                "Combine with gold for ultimate luxury feel",
+                "Balance with neutral colors to avoid overwhelming"
+            ],
+            psychologicalEffects: ["Stimulates imagination", "Enhances problem-solving", "Promotes introspection", "Increases artistic appreciation"],
+            physiologicalEffects: ["Calms nervous system", "Reduces anxiety", "Stimulates creativity centers", "Affects hormone production"],
+            researchCitations: [
+                "McManus et al. (1981): Purple enhances creative performance",
+                "Elliot & Maier (2007): Purple promotes innovative thinking",
+                "Stone & English (1998): Purple associated with luxury perception"
+            ],
+            culturalVariations: [
+                "Rome": "Imperial power, nobility",
+                "Thailand": "Widowhood, mourning",
+                "Brazil": "Death, mourning",
+                "Feng Shui": "Wealth, spiritual growth"
+            ],
+            designPrinciples: [
+                "Use sparingly for maximum impact",
+                "Gradient purples for modern appeal",
+                "Deep purples for authority and luxury"
+            ],
+            accessibility: "Generally accessible but check contrast ratios carefully with text elements.",
+            complementaryColors: ["Lime Green (#32CD32)", "Yellow-green (#ADFF2F)", "Chartreuse (#7FFF00)"]
+        ),
+        
+        ColorPsychologyProfile(
+            name: "Sunset Orange",
+            hex: "#FF8C00",
+            color: Color(hex: "#FF8C00") ?? .orange,
+            summary: "Orange combines red's energy with yellow's happiness, increasing enthusiasm by 16% and social interaction by 23%.",
+            emotionalDrivers: ["Enthusiasm", "Warmth", "Adventure", "Confidence", "Sociability"],
+            brandVoice: "Projects friendliness, approachability, adventure, and youthful energy.",
+            brandExamples: ["Amazon", "Fanta", "Harley Davidson", "Home Depot", "Nickelodeon"],
+            coreTone: "Warm enthusiasm, social energy",
+            primaryUse: "Call-to-action buttons, sports brands, food industry, social platforms",
+            cautions: "Can appear cheap if overused; may seem juvenile in professional contexts.",
+            culturalNote: "Sacred in Hinduism and Buddhism; associated with harvest and autumn in West.",
+            messagingIdeas: ["Join the adventure", "Warm welcome", "Energetic community", "Bold choice"],
+            applicationAdvice: [
+                "Perfect for conversion-focused elements",
+                "Use coral tones for sophistication",
+                "Pair with navy for professional applications",
+                "Burnt orange for autumn and luxury themes"
+            ],
+            psychologicalEffects: ["Increases enthusiasm by 16%", "Promotes social interaction", "Enhances appetite", "Stimulates conversation"],
+            physiologicalEffects: ["Increases heart rate moderately", "Stimulates activity", "Enhances socialization hormones", "Improves mood"],
+            researchCitations: [
+                "Gorn et al. (2004): Orange increases purchase likelihood",
+                "Bellizzi & Hite (1992): Orange creates sense of urgency",
+                "Singh (2006): Orange enhances brand friendliness perception"
+            ],
+            culturalVariations: [
+                "Netherlands": "National color, royal family",
+                "Hinduism": "Sacred, purity, spirituality",
+                "Ireland": "Protestant tradition",
+                "Buddhism": "Transformation, wisdom"
+            ],
+            designPrinciples: [
+                "Use for action-oriented elements",
+                "Softer oranges for backgrounds",
+                "Vibrant oranges for accents and highlights"
+            ],
+            accessibility: "Good visibility but ensure proper contrast ratios. Safe for most colorblind users.",
+            complementaryColors: ["Azure Blue (#007FFF)", "Cerulean (#87CEEB)", "Sky Blue (#87CEFA)"]
+        ),
+        
+        // NEUTRAL COLORS WITH PSYCHOLOGICAL DEPTH
+        ColorPsychologyProfile(
+            name: "Charcoal Gray",
+            hex: "#36454F",
+            color: Color(hex: "#36454F") ?? .gray,
+            summary: "Gray is the most psychologically neutral color, reducing cognitive load by 15% and promoting focus on content over decoration.",
+            emotionalDrivers: ["Sophistication", "Balance", "Timelessness", "Reliability", "Professionalism"],
+            brandVoice: "Communicates refined elegance, technological advancement, and serious professionalism.",
+            brandExamples: ["Apple", "Mercedes-Benz", "Nike", "Sony", "Wikipedia"],
+            coreTone: "Neutral sophistication, calm authority",
+            primaryUse: "Premium products, technology interfaces, professional services, minimalist design",
+            cautions: "Too much gray can feel depressing or sterile; needs accent colors for warmth.",
+            culturalNote: "Universally associated with neutrality and compromise across cultures.",
+            messagingIdeas: ["Refined choice", "Professional grade", "Timeless design", "Focused solution"],
+            applicationAdvice: [
+                "Use as sophisticated background for premium brands",
+                "Warm grays for approachable professionalism",
+                "Cool grays for technology and precision",
+                "Always pair with vibrant accent colors"
+            ],
+            psychologicalEffects: ["Reduces visual stress", "Promotes concentration", "Creates sense of calm", "Enhances perceived quality"],
+            physiologicalEffects: ["Neutral impact on heart rate", "Reduces eye strain", "Promotes mental clarity", "Balances emotional responses"],
+            researchCitations: [
+                "Stone (2003): Gray environments reduce cognitive overload",
+                "Singh (2006): Gray increases premium perception",
+                "Labrecque & Milne (2012): Gray associated with reliability"
+            ],
+            culturalVariations: [
+                "Global": "Neutrality, compromise, balance",
+                "Western": "Corporate professionalism",
+                "Eastern": "Modesty, humility",
+                "Modern": "Technology, minimalism"
+            ],
+            designPrinciples: [
+                "Use warm grays (with brown undertones) for friendliness",
+                "Cool grays (with blue undertones) for technology",
+                "Never use pure gray - always add subtle color temperature"
+            ],
+            accessibility: "Excellent for backgrounds. Ensure sufficient contrast with text elements.",
+            complementaryColors: ["Vibrant accents work well", "Coral (#FF7F50)", "Turquoise (#40E0D0)", "Gold (#FFD700)"]
+        ),
+        
+        ColorPsychologyProfile(
+            name: "Pure White",
+            hex: "#FFFFFF",
+            color: Color(hex: "#FFFFFF") ?? .white,
+            summary: "White reflects all light wavelengths, creating a sense of spaciousness that makes areas appear 20-30% larger and reduces anxiety.",
+            emotionalDrivers: ["Purity", "Cleanliness", "Simplicity", "Peace", "Perfection"],
+            brandVoice: "Represents minimalism, premium quality, medical precision, and modern sophistication.",
+            brandExamples: ["Apple", "Tesla", "Zara", "Muji", "Google"],
+            coreTone: "Pure clarity, infinite possibility",
+            primaryUse: "Medical interfaces, luxury products, minimalist design, negative space",
+            cautions: "Can feel sterile or empty; may cause eye strain on digital screens.",
+            culturalNote: "Wedding color in West, mourning color in parts of Asia; universally associated with cleanliness.",
+            messagingIdeas: ["Pure solution", "Clean slate", "Perfect clarity", "Endless possibility"],
+            applicationAdvice: [
+                "Use off-whites to reduce harshness",
+                "Combine with shadows for depth",
+                "Essential for creating visual breathing room",
+                "Use warm whites for approachability"
+            ],
+            psychologicalEffects: ["Creates sense of space", "Reduces visual clutter", "Promotes clarity of thought", "Enhances other colors"],
+            physiologicalEffects: ["Can cause eye strain in pure digital form", "Reflects maximum light", "Creates cooling sensation", "Promotes sense of cleanliness"],
+            researchCitations: [
+                "Mehta & Zhu (2009): White enhances focus and attention",
+                "Stone (2003): White spaces reduce cognitive load",
+                "Labrecque & Milne (2012): White associated with premium positioning"
+            ],
+            culturalVariations: [
+                "Western": "Purity, weddings, peace",
+                "Eastern": "Death, mourning, ghosts",
+                "Medical": "Cleanliness, sterility",
+                "Modern": "Minimalism, sophistication"
+            ],
+            designPrinciples: [
+                "Never use pure white on screens - use off-whites",
+                "Provide adequate contrast for accessibility",
+                "Use white space strategically for visual hierarchy"
+            ],
+            accessibility: "Excellent background color but can cause strain. Use #FAFAFA or similar for digital interfaces.",
+            complementaryColors: ["Any color works with white", "Creates maximum contrast with black", "Enhances vibrancy of all colors"]
+        ),
+        
+        ColorPsychologyProfile(
+            name: "Deep Black",
+            hex: "#000000",
+            color: Color(hex: "#000000") ?? .black,
+            summary: "Black absorbs all light wavelengths, creating the strongest visual contrast and conveying premium positioning in 84% of luxury brands.",
+            emotionalDrivers: ["Elegance", "Authority", "Mystery", "Power", "Sophistication"],
+            brandVoice: "Projects premium quality, serious professionalism, timeless elegance, and powerful authority.",
+            brandExamples: ["Chanel", "Nike", "Uber", "Netflix", "Adidas"],
+            coreTone: "Ultimate sophistication, authoritative power",
+            primaryUse: "Luxury goods, professional services, high-end technology, formal communications",
+            cautions: "Can feel overwhelming or depressing in large amounts; may seem unfriendly.",
+            culturalNote: "Mourning color in West, elegance globally; power and authority across cultures.",
+            messagingIdeas: ["Premium quality", "Powerful performance", "Elegant solution", "Professional excellence"],
+            applicationAdvice: [
+                "Use for text and key elements for maximum impact",
+                "Combine with white for classic sophistication",
+                "Add metallic accents for luxury appeal",
+                "Use sparingly to maintain power"
+            ],
+            psychologicalEffects: ["Creates sense of authority", "Enhances perceived value", "Promotes serious focus", "Conveys permanence"],
+            physiologicalEffects: ["Maximum visual contrast", "Can reduce eye strain as background", "Creates cooling sensation", "Absorbs heat and light"],
+            researchCitations: [
+                "Labrecque & Milne (2012): Black strongly associated with luxury",
+                "Singh (2006): Black increases premium perception by 73%",
+                "Bellizzi & Hite (1992): Black creates sense of exclusivity"
+            ],
+            culturalVariations: [
+                "Western": "Formal, mourning, elegance",
+                "Fashion": "Sophistication, slimming",
+                "Business": "Authority, professionalism",
+                "Gothic": "Mystery, rebellion"
+            ],
+            designPrinciples: [
+                "Use rich black (#0A0A0A) instead of pure black for digital",
+                "Ensure WCAG compliance with sufficient contrast",
+                "Balance with lighter elements to prevent oppression"
+            ],
+            accessibility: "Excellent for text on light backgrounds. Provides maximum contrast for readability.",
+            complementaryColors: ["White (#FFFFFF)", "Gold (#FFD700)", "Silver (#C0C0C0)", "Bright accent colors"]
+        ),
+        
+        // SOPHISTICATED TERTIARY COLORS
+        ColorPsychologyProfile(
+            name: "Teal",
+            hex: "#008080",
+            color: Color(hex: "#008080") ?? Color.teal,
+            summary: "Teal combines blue's calming effects with green's rejuvenating properties, reducing mental fatigue by 23% in workplace studies.",
+            emotionalDrivers: ["Balance", "Sophistication", "Clarity", "Rejuvenation", "Communication"],
+            brandVoice: "Communicates thoughtful innovation, balanced wisdom, and sophisticated clarity.",
+            brandExamples: ["Mailchimp", "Vimeo", "Spotify", "WordPress", "Canva"],
+            coreTone: "Sophisticated balance, intelligent calm",
+            primaryUse: "Healthcare technology, communication platforms, wellness brands, professional services",
+            cautions: "Can appear cold without warm accents; may seem clinical in some contexts.",
+            culturalNote: "Associated with healing and communication across many cultures.",
+            messagingIdeas: ["Balanced approach", "Clear communication", "Thoughtful innovation", "Healing solution"],
+            applicationAdvice: [
+                "Perfect for healthcare and wellness applications",
+                "Use darker teals for professional authority",
+                "Lighter teals for approachable technology",
+                "Combine with coral or orange for warmth"
+            ],
+            psychologicalEffects: ["Reduces mental fatigue by 23%", "Enhances communication clarity", "Promotes emotional balance", "Increases focus"],
+            physiologicalEffects: ["Lowers blood pressure", "Reduces eye strain", "Promotes healing response", "Balances nervous system"],
+            researchCitations: [
+                "Kwallek & Lewis (1990): Teal improves workplace concentration",
+                "Stone (2003): Teal environments reduce stress markers",
+                "Mehta & Zhu (2009): Teal enhances analytical thinking"
+            ],
+            culturalVariations: [
+                "Healing traditions": "Balance, restoration",
+                "Ocean cultures": "Depth, mystery, life",
+                "Modern design": "Sophistication, technology",
+                "Wellness": "Mental clarity, emotional balance"
+            ],
+            designPrinciples: [
+                "Use as primary in healthcare and wellness designs",
+                "Darker teals for authority and trust",
+                "Pair with warm accents to prevent coldness"
+            ],
+            accessibility: "Generally good accessibility. Ensure proper contrast ratios for text readability.",
+            complementaryColors: ["Coral (#FF7F50)", "Peach (#FFCBA4)", "Warm Orange (#FF8C00)"]
+        ),
+        
+        ColorPsychologyProfile(
+            name: "Burgundy",
+            hex: "#800020",
+            color: Color(hex: "#800020") ?? Color(red: 0.5, green: 0, blue: 0.125),
+            summary: "Burgundy evokes sophistication and tradition, increasing perceived value by 34% in premium product studies.",
+            emotionalDrivers: ["Sophistication", "Tradition", "Luxury", "Maturity", "Refinement"],
+            brandVoice: "Projects established excellence, refined taste, premium heritage, and mature wisdom.",
+            brandExamples: ["Harvard University", "Bordeaux wines", "Maroon 5", "Arizona State", "Premium hotels"],
+            coreTone: "Mature sophistication, established authority",
+            primaryUse: "Educational institutions, wine industry, luxury hospitality, traditional brands",
+            cautions: "Can appear old-fashioned or overly serious; may limit appeal to younger demographics.",
+            culturalNote: "Associated with aristocracy and fine wine culture globally.",
+            messagingIdeas: ["Established excellence", "Refined tradition", "Premium heritage", "Mature wisdom"],
+            applicationAdvice: [
+                "Excellent for educational and institutional branding",
+                "Use in wine and luxury food contexts",
+                "Combine with gold for ultimate luxury appeal",
+                "Balance with contemporary elements for modern relevance"
+            ],
+            psychologicalEffects: ["Increases perceived value by 34%", "Conveys stability and reliability", "Promotes serious contemplation", "Enhances appetite for fine foods"],
+            physiologicalEffects: ["Calming yet sophisticated", "Stimulates appetite moderately", "Creates sense of warmth", "Promotes contemplative mood"],
+            researchCitations: [
+                "Singh (2006): Burgundy associated with premium positioning",
+                "Gorn et al. (2004): Deep reds increase luxury perception",
+                "Stone & English (1998): Burgundy conveys tradition and quality"
+            ],
+            culturalVariations: [
+                "Wine culture": "Quality, tradition, sophistication",
+                "Academia": "Learning, tradition, authority",
+                "Royalty": "Noble bearing, established power",
+                "Hospitality": "Warmth, luxury, comfort"
+            ],
+            designPrinciples: [
+                "Use as accent color for premium positioning",
+                "Excellent for backgrounds in luxury contexts",
+                "Pair with cream and gold for elegant combinations"
+            ],
+            accessibility: "Good contrast potential but test carefully. May be difficult for some colorblind users.",
+            complementaryColors: ["Cream (#F5F5DC)", "Gold (#FFD700)", "Forest Green (#228B22)"]
         )
     ]
 }
@@ -310,10 +863,12 @@ fileprivate struct InsightCard: View {
             Text(title)
                 .font(.system(.headline, design: .monospaced, weight: .semibold))
 
-            Text(detail)
-                .font(.system(.callout, design: .monospaced))
-                .foregroundColor(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            NoHyphenationLabel(
+                text: detail,
+                font: UIFont.monospacedSystemFont(ofSize: 14, weight: .regular),
+                color: UIColor.secondaryLabel
+            )
+            .fixedSize(horizontal: false, vertical: true)
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -324,14 +879,44 @@ fileprivate struct InsightCard: View {
 
 fileprivate struct TagCapsule: View {
     let text: String
+    let action: (() -> Void)?
+
+    init(text: String, action: (() -> Void)? = nil) {
+        self.text = text
+        self.action = action
+    }
 
     var body: some View {
-        Text(text)
-            .font(.system(.caption, design: .monospaced, weight: .medium))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(Color(uiColor: .tertiarySystemGroupedBackground))
-            .cornerRadius(20)
+        Group {
+            if let action = action {
+                Button(action: action) {
+                    NoHyphenationLabel(
+                        text: text,
+                        font: UIFont.monospacedSystemFont(ofSize: 12, weight: .semibold),
+                        color: UIColor.label,
+                        numberOfLines: 1,
+                        lineBreakMode: .byTruncatingTail
+                    )
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color(uiColor: .tertiarySystemGroupedBackground))
+                    .cornerRadius(18)
+                }
+                .buttonStyle(.plain)
+            } else {
+                NoHyphenationLabel(
+                    text: text,
+                    font: UIFont.monospacedSystemFont(ofSize: 12, weight: .semibold),
+                    color: UIColor.label,
+                    numberOfLines: 1,
+                    lineBreakMode: .byTruncatingTail
+                )
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(Color(uiColor: .tertiarySystemGroupedBackground))
+                .cornerRadius(18)
+            }
+        }
     }
 }
 
@@ -437,10 +1022,12 @@ struct ColorBlindnessGuideView: View {
                         Text("Description")
                             .font(.system(.headline, design: .monospaced, weight: .semibold))
                         
-                        Text(type.description)
-                            .font(.system(.body, design: .monospaced))
-                            .lineSpacing(6)
-                            .fixedSize(horizontal: false, vertical: true)
+                        NoHyphenationLabel(
+                            text: type.description,
+                            font: UIFont.monospacedSystemFont(ofSize: 16, weight: .regular),
+                            color: UIColor.label
+                        )
+                        .fixedSize(horizontal: false, vertical: true)
                     }
                     
                     // Prevalence
@@ -448,9 +1035,12 @@ struct ColorBlindnessGuideView: View {
                         Text("Prevalence")
                             .font(.system(.headline, design: .monospaced, weight: .semibold))
                         
-                        Text(type.prevalence)
-                            .font(.system(.body, design: .monospaced))
-                            .foregroundColor(.secondary)
+                        NoHyphenationLabel(
+                            text: type.prevalence,
+                            font: UIFont.monospacedSystemFont(ofSize: 14, weight: .regular),
+                            color: UIColor.secondaryLabel
+                        )
+                        .fixedSize(horizontal: false, vertical: true)
                     }
                     
                     // Simulation
@@ -458,10 +1048,12 @@ struct ColorBlindnessGuideView: View {
                         Text("How Colors Appear")
                             .font(.system(.headline, design: .monospaced, weight: .semibold))
                         
-                        Text(type.simulation)
-                            .font(.system(.body, design: .monospaced))
-                            .lineSpacing(6)
-                            .fixedSize(horizontal: false, vertical: true)
+                        NoHyphenationLabel(
+                            text: type.simulation,
+                            font: UIFont.monospacedSystemFont(ofSize: 14, weight: .regular),
+                            color: UIColor.label
+                        )
+                        .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 .padding()
@@ -576,10 +1168,12 @@ struct GuidelineItem: View {
                 Text(title)
                     .font(.system(.callout, design: .monospaced, weight: .semibold))
                 
-                Text(description)
-                    .font(.system(.callout, design: .monospaced))
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                NoHyphenationLabel(
+                    text: description,
+                    font: UIFont.monospacedSystemFont(ofSize: 14, weight: .regular),
+                    color: UIColor.secondaryLabel
+                )
+                .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -616,12 +1210,35 @@ struct ColorBlindnessSimulatorView: View {
                         Text("Test Image")
                             .font(.system(.headline, design: .monospaced, weight: .semibold))
                         
-                        Picker("Image", selection: $selectedImage) {
+                        Menu {
                             ForEach(0..<testImages.count, id: \.self) { index in
-                                Text(testImages[index]).tag(index)
+                                Button {
+                                    selectedImage = index
+                                } label: {
+                                    Label(testImages[index], systemImage: selectedImage == index ? "checkmark" : "")
+                                }
                             }
+                        } label: {
+                            HStack {
+                                Text(testImages[selectedImage])
+                                    .font(.system(.body, design: .monospaced, weight: .medium))
+                                Spacer()
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(Color(uiColor: .secondarySystemBackground))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+                            )
                         }
-                        .pickerStyle(.segmented)
+                        .buttonStyle(.plain)
                     }
                     
                     // Vision Type
@@ -629,12 +1246,35 @@ struct ColorBlindnessSimulatorView: View {
                         Text("Vision Type")
                             .font(.system(.headline, design: .monospaced, weight: .semibold))
                         
-                        Picker("Type", selection: $selectedType) {
+                        Menu {
                             ForEach(0..<simulationTypes.count, id: \.self) { index in
-                                Text(simulationTypes[index]).tag(index)
+                                Button {
+                                    selectedType = index
+                                } label: {
+                                    Label(simulationTypes[index], systemImage: selectedType == index ? "checkmark" : "")
+                                }
                             }
+                        } label: {
+                            HStack {
+                                Text(simulationTypes[selectedType])
+                                    .font(.system(.body, design: .monospaced, weight: .medium))
+                                Spacer()
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(Color(uiColor: .secondarySystemBackground))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+                            )
                         }
-                        .pickerStyle(.segmented)
+                        .buttonStyle(.plain)
                     }
                     
                     // Simulated Image Placeholder
@@ -726,6 +1366,76 @@ struct BrandColorsGuideView: View {
             name: "Netflix",
             colors: [Color(hex: "#E50914") ?? .red, Color(hex: "#000000") ?? .black, Color(hex: "#FFFFFF") ?? .white],
             description: "Netflix uses a bold red that stands out against black and white backgrounds."
+        ),
+        (
+            name: "Amazon",
+            colors: [Color(hex: "#FF9900") ?? .orange, Color(hex: "#232F3E") ?? .black, Color(hex: "#146EB4") ?? .blue],
+            description: "Amazon pairs its signature smile orange with deep navy hues for clarity and trust."
+        ),
+        (
+            name: "Adobe",
+            colors: [Color(hex: "#FF0000") ?? .red, Color(hex: "#2C2C2C") ?? .black, Color(hex: "#FFFFFF") ?? .white],
+            description: "Adobe leans on a powerful red to signal creativity, anchored by neutral black and white."
+        ),
+        (
+            name: "Airbnb",
+            colors: [Color(hex: "#FF5A5F") ?? .pink, Color(hex: "#484848") ?? .gray, Color(hex: "#FFFFFF") ?? .white],
+            description: "Airbnb's palette balances its friendly Rausch coral with grounded neutrals for readability."
+        ),
+        (
+            name: "Microsoft",
+            colors: [Color(hex: "#F35325") ?? .orange, Color(hex: "#81BC06") ?? .green, Color(hex: "#05A6F0") ?? .blue, Color(hex: "#FFBA08") ?? .yellow],
+            description: "Microsoft's four-color square celebrates product diversity with vibrant, balanced tones."
+        ),
+        (
+            name: "Meta",
+            colors: [Color(hex: "#0866FF") ?? .blue, Color(hex: "#1C1E21") ?? .black, Color(hex: "#FFFFFF") ?? .white],
+            description: "Meta modernized Facebook blue with deep charcoal accents for a more mature product suite."
+        ),
+        (
+            name: "Instagram",
+            colors: [Color(hex: "#833AB4") ?? .purple, Color(hex: "#FD1D1D") ?? .red, Color(hex: "#FCAF45") ?? .orange, Color(hex: "#FFDC80") ?? .yellow],
+            description: "Instagram blends a warm gradient that mirrors the energy and diversity of shared moments."
+        ),
+        (
+            name: "Starbucks",
+            colors: [Color(hex: "#00704A") ?? .green, Color(hex: "#FFFFFF") ?? .white, Color(hex: "#000000") ?? .black],
+            description: "Starbucks relies on a rich green to signal sustainability, contrasted with crisp neutrals."
+        ),
+        (
+            name: "Tesla",
+            colors: [Color(hex: "#CC0000") ?? .red, Color(hex: "#171A20") ?? .black, Color(hex: "#FFFFFF") ?? .white],
+            description: "Tesla's minimalist palette mixes performance red with high-contrast monochromatic tones."
+        ),
+        (
+            name: "Twitter",
+            colors: [Color(hex: "#1DA1F2") ?? .blue, Color(hex: "#14171A") ?? .black, Color(hex: "#FFFFFF") ?? .white],
+            description: "Twitter blue evokes clarity and openness, balanced by dark and light neutrals for hierarchy."
+        ),
+        (
+            name: "McDonald's",
+            colors: [Color(hex: "#DA291C") ?? .red, Color(hex: "#FFC72C") ?? .yellow, Color(hex: "#FFFFFF") ?? .white],
+            description: "McDonald's golden arches pairing with energetic red reinforces speed and familiarity."
+        ),
+        (
+            name: "Samsung",
+            colors: [Color(hex: "#1428A0") ?? .blue, Color(hex: "#000000") ?? .black, Color(hex: "#FFFFFF") ?? .white],
+            description: "Samsung leverages a confident royal blue to underscore innovation across devices."
+        ),
+        (
+            name: "IBM",
+            colors: [Color(hex: "#052FAD") ?? .blue, Color(hex: "#FFFFFF") ?? .white, Color(hex: "#000000") ?? .black],
+            description: "IBM's classic blue communicates reliability and enterprise-grade expertise."
+        ),
+        (
+            name: "Dropbox",
+            colors: [Color(hex: "#0061FF") ?? .blue, Color(hex: "#007EE5") ?? .blue, Color(hex: "#FFFFFF") ?? .white],
+            description: "Dropbox uses a bright, playful blue spectrum to emphasize simplicity and openness."
+        ),
+        (
+            name: "LinkedIn",
+            colors: [Color(hex: "#0A66C2") ?? .blue, Color(hex: "#313335") ?? .gray, Color(hex: "#FFFFFF") ?? .white],
+            description: "LinkedIn keeps a professional tone with dependable blues and neutral supporting shades."
         )
     ]
     
@@ -798,8 +1508,10 @@ struct BrandColorsGuideView: View {
                                 .shadow(radius: 2)
                             
                             Text(UIColor(brand.colors[index]).hexString)
-                                .font(.system(.caption2, design: .monospaced))
-                                .lineLimit(1)
+                                .font(.system(.caption, design: .monospaced, weight: .medium))
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.8)
+                                .multilineTextAlignment(.center)
                         }
                     }
                 }
@@ -810,10 +1522,12 @@ struct BrandColorsGuideView: View {
                 Text("Brand Strategy")
                     .font(.system(.headline, design: .monospaced, weight: .semibold))
                 
-                Text(brand.description)
-                    .font(.system(.body, design: .monospaced))
-                    .lineSpacing(6)
-                    .fixedSize(horizontal: false, vertical: true)
+                NoHyphenationLabel(
+                    text: brand.description,
+                    font: UIFont.monospacedSystemFont(ofSize: 14, weight: .regular),
+                    color: UIColor.label
+                )
+                .fixedSize(horizontal: false, vertical: true)
             }
             
             // Lessons
@@ -1222,14 +1936,34 @@ struct TypographyPlaygroundView: View {
                         Slider(value: $letterSpacing, in: -10...20, step: 1)
                     }
                     
-                    Picker("Font Weight", selection: $fontWeight) {
-                        Text("Light").tag(Font.Weight.light)
-                        Text("Regular").tag(Font.Weight.regular)
-                        Text("Medium").tag(Font.Weight.medium)
-                        Text("Bold").tag(Font.Weight.bold)
-                        Text("Heavy").tag(Font.Weight.heavy)
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Font Weight")
+                            .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                        
+                        HStack(spacing: 8) {
+                            ForEach([Font.Weight.light, Font.Weight.regular, Font.Weight.medium, Font.Weight.bold, Font.Weight.heavy], id: \.self) { weight in
+                                Button {
+                                    fontWeight = weight
+                                } label: {
+                                    Text(weightLabel(weight))
+                                        .font(.system(.caption, design: .monospaced, weight: .medium))
+                                        .padding(.vertical, 6)
+                                        .padding(.horizontal, 10)
+                                        .background(
+                                            Capsule()
+                                                .fill(fontWeight == weight ? Color.accentColor.opacity(0.2) : Color(uiColor: .tertiarySystemBackground))
+                                        )
+                                        .overlay(
+                                            Capsule()
+                                                .stroke(fontWeight == weight ? Color.accentColor.opacity(0.4) : Color.clear, lineWidth: 1)
+                                        )
+                                        .foregroundColor(fontWeight == weight ? .accentColor : .secondary)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
                     }
-                    .pickerStyle(.segmented)
+                    
                 }
                 .padding()
                 .background(Color(uiColor: .secondarySystemGroupedBackground))
@@ -1271,7 +2005,18 @@ struct TypographyPlaygroundView: View {
             }
             .padding()
         }
-        .toolbar { ToolbarItem(placement: .principal) { AppNavTitle(text: "Playground") } }
+        .toolbar { ToolbarItem(placement: .principal) { AppNavTitle(text: "Typography") } }
+    }
+    
+    private func weightLabel(_ weight: Font.Weight) -> String {
+        switch weight {
+        case .light: return "Light"
+        case .regular: return "Regular"
+        case .medium: return "Medium"
+        case .bold: return "Bold"
+        case .heavy: return "Heavy"
+        default: return "Regular"
+        }
     }
 }
 
@@ -1540,11 +2285,15 @@ struct ColorTrendsGuideView: View {
                             
                             Text(trend.names[index])
                                 .font(.system(.caption, design: .monospaced, weight: .medium))
-                                .lineLimit(1)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.8)
+                                .multilineTextAlignment(.center)
                             
                             Text(UIColor(trend.colors[index]).hexString)
-                                .font(.system(.caption2, design: .monospaced))
-                                .lineLimit(1)
+                                .font(.system(.caption, design: .monospaced, weight: .medium))
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.8)
+                                .multilineTextAlignment(.center)
                         }
                     }
                 }
@@ -1904,12 +2653,31 @@ struct NamedColorsView: View {
                 .background(Color(uiColor: .secondarySystemGroupedBackground))
                 .cornerRadius(12)
                 
-                Picker("Category", selection: $selectedCategory) {
-                    ForEach(0..<colorCategories.count, id: \.self) { index in
-                        Text(colorCategories[index]).tag(index)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(0..<colorCategories.count, id: \.self) { index in
+                            Button {
+                                selectedCategory = index
+                            } label: {
+                                Text(colorCategories[index])
+                                    .font(.system(.caption, design: .monospaced, weight: .medium))
+                                    .padding(.vertical, 8)
+                                    .padding(.horizontal, 12)
+                                    .background(
+                                        Capsule()
+                                            .fill(selectedCategory == index ? Color.accentColor.opacity(0.2) : Color(uiColor: .tertiarySystemBackground))
+                                    )
+                                    .overlay(
+                                        Capsule()
+                                            .stroke(selectedCategory == index ? Color.accentColor.opacity(0.4) : Color.clear, lineWidth: 1)
+                                    )
+                                    .foregroundColor(selectedCategory == index ? .accentColor : .secondary)
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
+                    .padding(.horizontal, 20)
                 }
-                .pickerStyle(.segmented)
             }
             .padding(.horizontal)
             
@@ -1935,8 +2703,9 @@ struct NamedColorsView: View {
                             
                             Text(name)
                                 .font(.system(.callout, design: .monospaced, weight: .medium))
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.7)
+                                .multilineTextAlignment(.center)
                             
                             Text(hex)
                                 .font(.system(.caption, design: .monospaced))
@@ -2537,8 +3306,9 @@ fileprivate struct PaletteSwatchChip: View {
             Text(hex.uppercased())
                 .font(.system(.caption2, design: .monospaced, weight: .semibold))
                 .foregroundColor(.secondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .lineLimit(2)
+                .minimumScaleFactor(0.6)
+                .multilineTextAlignment(.center)
                 .frame(width: 64)
         }
         .padding(.vertical, 6)
@@ -2812,7 +3582,7 @@ fileprivate enum DailyInspirationLibrary {
 // =============================
 
 struct ColorTheoryGuideView: View {
-    @State private var selectedTab = 0
+    @State private var selectedLessonIndex = 0
     @State private var quizScore = 0
     @State private var showQuiz = false
     
@@ -2825,13 +3595,13 @@ struct ColorTheoryGuideView: View {
                 HStack(spacing: 8) {
                     ForEach(0..<tabs.count, id: \.self) { index in
                         Circle()
-                            .fill(index <= selectedTab ? Color.blue : Color.gray.opacity(0.3))
+                            .fill(index <= selectedLessonIndex ? Color.blue : Color.gray.opacity(0.3))
                             .frame(width: 8, height: 8)
                     }
                 }
                 .padding(.top, 8)
                 
-                TabView(selection: $selectedTab) {
+                TabView(selection: $selectedLessonIndex) {
                     basicsTab.tag(0)
                     colorWheelTab.tag(1)
                     harmonyTab.tag(2)
@@ -2841,7 +3611,6 @@ struct ColorTheoryGuideView: View {
                 .tabViewStyle(.page)
                 .indexViewStyle(.page(backgroundDisplayMode: .never))
             }
-            .background(Color(uiColor: .systemGroupedBackground))
             .toolbar { ToolbarItem(placement: .principal) { AppNavTitle(text: "Color Theory") } }
         }
     }
@@ -3148,9 +3917,11 @@ struct RelationshipRow: View {
             Text(title)
                 .font(.system(.headline, design: .monospaced, weight: .semibold))
             
-            Text(description)
-                .font(.system(.body, design: .monospaced))
-                .foregroundColor(.secondary)
+            NoHyphenationLabel(
+                text: description,
+                font: UIFont.monospacedSystemFont(ofSize: 14, weight: .regular),
+                color: UIColor.secondaryLabel
+            )
             
             Text("Example: \(example)")
                 .font(.system(.caption, design: .monospaced))
@@ -3179,10 +3950,12 @@ struct HarmonyExample: View {
             }
             .cornerRadius(8)
             
-            Text(description)
-                .font(.system(.caption, design: .monospaced))
-                .foregroundColor(.secondary)
-                .lineLimit(2)
+            NoHyphenationLabel(
+                text: description,
+                font: UIFont.monospacedSystemFont(ofSize: 12, weight: .regular),
+                color: UIColor.secondaryLabel
+            )
+            .lineLimit(2)
         }
         .padding()
         .background(Color(uiColor: .secondarySystemGroupedBackground))
@@ -3205,8 +3978,11 @@ struct ColorPsychologyCard: View {
             Text(emotion)
                 .font(.system(.headline, design: .monospaced, weight: .semibold))
             
-            Text(associations)
-                .font(.system(.caption, design: .monospaced))
+            NoHyphenationLabel(
+                text: associations,
+                font: UIFont.monospacedSystemFont(ofSize: 12, weight: .regular),
+                color: UIColor.secondaryLabel
+            )
                 .foregroundColor(.secondary)
                 .lineLimit(3)
         }
@@ -3453,7 +4229,6 @@ struct ColorTrendsView: View {
                 }
                 .padding()
             }
-            .background(Color(uiColor: .systemGroupedBackground))
             .toolbar { ToolbarItem(placement: .principal) { AppNavTitle(text: "Color Trends") } }
         }
     }
@@ -3517,10 +4292,12 @@ struct SeasonalTrendCard: View {
             .frame(height: 40)
             .cornerRadius(8)
             
-            Text(description)
-                .font(.system(.caption, design: .monospaced))
-                .foregroundColor(.secondary)
-                .lineLimit(3)
+            NoHyphenationLabel(
+                text: description,
+                font: UIFont.monospacedSystemFont(ofSize: 12, weight: .regular),
+                color: UIColor.secondaryLabel
+            )
+            .lineLimit(3)
         }
         .padding()
         .background(Color(uiColor: .secondarySystemGroupedBackground))
@@ -3546,10 +4323,12 @@ struct IndustryTrendCard: View {
             .frame(height: 40)
             .cornerRadius(8)
             
-            Text(description)
-                .font(.system(.caption, design: .monospaced))
-                .foregroundColor(.secondary)
-                .lineLimit(3)
+            NoHyphenationLabel(
+                text: description,
+                font: UIFont.monospacedSystemFont(ofSize: 12, weight: .regular),
+                color: UIColor.secondaryLabel
+            )
+            .lineLimit(3)
         }
         .padding()
         .background(Color(uiColor: .secondarySystemGroupedBackground))
@@ -3585,7 +4364,6 @@ struct BrandColorExtractorView: View {
                 }
                 .padding()
             }
-            .background(Color(uiColor: .systemGroupedBackground))
             .toolbar { ToolbarItem(placement: .principal) { AppNavTitle(text: "Brand Extractor") } }
             .sheet(isPresented: $showImagePicker) { ImagePickerSimple(selectedImage: $selectedImage) }
             .sheet(isPresented: $showSaveSheet) {
@@ -3610,7 +4388,7 @@ struct BrandColorExtractorView: View {
             Text("🏢 Brand Color Extractor")
                 .font(.system(.title, design: .monospaced, weight: .bold))
 
-            Text("Analyze logos to capture hero colors, balance harmony, and build accessible brand palettes.")
+            Text("Analyze logos to extract hero colors, balance harmony, and build accessible brand palettes.")
                 .font(.system(.body, design: .monospaced))
                 .foregroundColor(.secondary)
         }
@@ -3924,39 +4702,9 @@ struct BrandColorExtractorView: View {
     private func percentageString(_ value: Double) -> String {
         String(format: "%.0f%%", value * 100)
     }
+
 }
 
-extension PaletteStyle: CaseIterable {
-    static let allCases: [PaletteStyle] = [.adaptive, .harmonic, .monochromatic, .complementary, .triadic, .analogous]
-
-    var displayName: String { rawValue }
-}
-
-extension PalettePurpose: CaseIterable {
-    static let allCases: [PalettePurpose] = [.ui, .branding, .artistic, .accessible]
-
-    var displayName: String {
-        switch self {
-        case .ui: return "UI"
-        case .branding: return "Branding"
-        case .artistic: return "Artistic"
-        case .accessible: return "Accessible"
-        }
-    }
-
-    var guidance: String {
-        switch self {
-        case .ui:
-            return "Balances contrast and interaction states for multi-state UI surfaces."
-        case .branding:
-            return "Highlights hero tones while keeping supportive colors distinct and consistent."
-        case .artistic:
-            return "Allows expressive saturation shifts and cinematic range for storytelling visuals."
-        case .accessible:
-            return "Maximizes contrast ratios and legibility for WCAG-compliant experiences."
-        }
-    }
-}
 
 struct BrandColorCard: View {
     let color: Color
@@ -4037,7 +4785,7 @@ struct ImagePickerSimple: UIViewControllerRepresentable {
         
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
             if let image = info[.originalImage] as? UIImage {
-                parent.selectedImage = image
+                parent.selectedImage = image.normalizedImage().resizedIfNecessary(maxDimension: 2048)
             }
             parent.dismiss()
         }
@@ -4059,50 +4807,96 @@ struct AppNavTitle: View {
             .font(.system(size: size, weight: weight, design: .monospaced))
             .italic()
             .fontWeight(weight)
-            .minimumScaleFactor(0.8)
-            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .lineLimit(2)
+            .multilineTextAlignment(.center)
     }
 }
 
-// MARK: - Root Tabs
 struct ContentView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
-    @State private var selectedTab = 0
+    @AppStorage("ambitAppearanceMode") private var storedAppearanceMode = AmbitAppearanceMode.studio.rawValue
+    @State private var selectedTab: RootTab = .analyzer
+
+    private var appearanceMode: AmbitAppearanceMode {
+        AmbitAppearanceMode.resolved(from: storedAppearanceMode)
+    }
+
+    private var accentColor: Color {
+        appearanceMode.accentColor
+    }
     
     var body: some View {
         Group {
             if hasCompletedOnboarding {
-                TabView(selection: $selectedTab) {
-                    AnalyzerView()
-                        .tabItem { Label("Analyzer", systemImage: "sparkles") }
-                        .tag(0)
-
-                    ToolsView()
-                        .tabItem { Label("Tools", systemImage: "hammer") }
-                        .tag(1)
-
-                    LearningView()
-                        .tabItem { Label("Learning", systemImage: "graduationcap") }
-                        .tag(2)
-
-                    LibraryView(selectedTab: $selectedTab)
-                        .tabItem { Label("Library", systemImage: "books.vertical") }
-                        .tag(3)
+                ZStack {
+                    // Apply custom theme background
+                    appearanceMode.backgroundColor
+                        .ignoresSafeArea()
+                    
+                    // Soft ambient gradient for depth that respects the selected accent
+                    LinearGradient(
+                        colors: [
+                            accentColor.opacity(appearanceMode.isDarkStyle ? 0.08 : 0.04),
+                            accentColor.opacity(appearanceMode.isDarkStyle ? 0.04 : 0.015)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .ignoresSafeArea()
+                    
+                    VStack(spacing: 0) {
+                        // Main Content Area
+                        Group {
+                            switch selectedTab {
+                            case .analyzer:
+                                AnalyzerView(selectedTab: $selectedTab)
+                            case .palettes:
+                                PaletteView()
+                            case .gradients:
+                                GradientView()
+                            case .cards:
+                                CardView()
+                            case .learning:
+                                LearningView()
+                            case .library:
+                                LibraryView(selectedTab: $selectedTab)
+                            case .settings:
+                                SettingsView()
+                            }
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(appearanceMode.backgroundColor)
+                        
+                        // Custom Scrollable Tab Bar
+                        ScrollableTabBar(selectedTab: $selectedTab)
+                    }
                 }
             } else {
                 OnboardingView(hasCompletedOnboarding: $hasCompletedOnboarding)
+                    .background(appearanceMode.backgroundColor.ignoresSafeArea())
             }
         }
+        .tint(accentColor)
+        .preferredColorScheme(appearanceMode.preferredColorScheme)
+        .environment(\.ambitAccentColor, accentColor)
+        .environment(\.ambitTheme, appearanceMode)
+        .environment(\.ambitTextPrimary, appearanceMode.textPrimaryColor)
+        .environment(\.ambitTextSecondary, appearanceMode.textSecondaryColor)
+        .onAppear { PreferenceSyncCoordinator.shared.startSync() }
         .animation(.easeInOut, value: hasCompletedOnboarding)
     }
 }
 
 // MARK: - Analyzer
 struct AnalyzerView: View {
+    @Binding var selectedTab: RootTab
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.ambitAccentColor) private var accentColor
     @AppStorage("numberOfColorsToExtract") private var numberOfColors: Int = 8
     @AppStorage("avoidDarkColors") private var avoidDark: Bool = true
 
+    @Query(sort: \SavedPalette.timestamp, order: .reverse, animation: .easeInOut) private var savedPalettes: [SavedPalette]
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImage: UIImage?
     @State private var extractedColors: [UIColor] = []
@@ -4117,6 +4911,14 @@ struct AnalyzerView: View {
     @State private var showSettingsSheet = false
     @State private var showPhotoPermissionAlert = false
 
+    private var recentPaletteImports: [SavedPalette] {
+        Array(savedPalettes.prefix(6))
+    }
+
+    private var overlayBottomPadding: CGFloat {
+        recentPaletteImports.isEmpty ? 160 : 220
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -4129,7 +4931,7 @@ struct AnalyzerView: View {
                         .ignoresSafeArea()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    Color(uiColor: .systemGroupedBackground)
+                    Color.clear
                         .ignoresSafeArea()
                 }
 
@@ -4171,6 +4973,9 @@ struct AnalyzerView: View {
 
                 overlayMessages
             }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                analyzerDeck
+            }
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
@@ -4197,6 +5002,147 @@ struct AnalyzerView: View {
                                 extractedColors: extractedColors)
             }
         }
+    }
+
+    private var analyzerDeck: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            analyzerHero
+            analyzerQuickActions
+            if !recentPaletteImports.isEmpty {
+                analyzerRecentRail
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 32, style: .continuous)
+                .fill(.ultraThinMaterial)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 32, style: .continuous)
+                .stroke(Color.primary.opacity(0.05), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.08), radius: 14, y: 8)
+        .padding(.horizontal)
+        .padding(.bottom, 12)
+    }
+
+    private var analyzerHero: some View {
+        HStack(alignment: .center, spacing: 16) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(LinearGradient(colors: [accentColor.opacity(0.24), accentColor.opacity(0.08)],
+                                         startPoint: .topLeading,
+                                         endPoint: .bottomTrailing))
+                    .frame(width: 68, height: 68)
+                Image(systemName: selectedImage == nil ? "sparkles" : "camera.metering.spot")
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundColor(accentColor)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+             Text(selectedImage == nil ? "Kick off a new analysis" : "Active analyzer ready")
+                    .font(.system(.headline, design: .monospaced, weight: .semibold))
+             Text(selectedImage == nil ? "Import an image to map its palette."
+                 : "\(extractedColors.count) swatches sampled • toggle the dropper to refine.")
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer()
+        }
+    }
+
+    private var analyzerQuickActions: some View {
+        ViewThatFits {
+            HStack(spacing: 12) { analyzerQuickActionContent }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) { analyzerQuickActionContent }
+                    .padding(.horizontal, 2)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var analyzerQuickActionContent: some View {
+        PhotosPicker(selection: $selectedItem, matching: .images) {
+            AnalyzerActionCard(icon: "photo.on.rectangle", title: "Import Photo", subtitle: "Use your camera roll", tint: .blue)
+        }
+
+        Button(action: toggleDropper) {
+            AnalyzerActionCard(icon: "eyedropper.halffull",
+                               title: "Color Dropper",
+                               subtitle: selectedImage == nil ? "Add an image first" : (isDropperActive ? "Tap the photo to sample" : "Tap to enable sampling"),
+                               tint: .teal,
+                               isDisabled: selectedImage == nil)
+        }
+        .disabled(selectedImage == nil)
+
+        Button {
+            showSaveSheet = true
+        } label: {
+            AnalyzerActionCard(icon: "bookmark.fill",
+                               title: "Save Palette",
+                               subtitle: extractedColors.isEmpty ? "Add colors first" : "\(extractedColors.count) shades ready",
+                               tint: .orange,
+                               isDisabled: extractedColors.isEmpty)
+        }
+        .disabled(extractedColors.isEmpty)
+
+        Button {
+            showCardCreator = true
+        } label: {
+            AnalyzerActionCard(icon: "rectangle.portrait.on.rectangle",
+                               title: "Make a Card",
+                               subtitle: extractedColors.isEmpty ? "Need swatches to export" : "Send palette to showcase",
+                               tint: .purple,
+                               isDisabled: extractedColors.isEmpty)
+        }
+        .disabled(extractedColors.isEmpty)
+
+        Button {
+            selectedTab = .palettes
+        } label: {
+            AnalyzerActionCard(icon: "paintpalette",
+                               title: "Open Palettes",
+                               subtitle: "Remix imported hues",
+                               tint: .pink)
+        }
+    }
+
+    private var analyzerRecentRail: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Recent Imports")
+                    .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                Spacer()
+                Text("Latest \(recentPaletteImports.count) imports")
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundColor(.secondary)
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(recentPaletteImports) { palette in
+                        NavigationLink { PaletteDetailView(palette: palette) } label: {
+                            AnalyzerRecentImportCard(palette: palette)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 2)
+            }
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color(uiColor: .secondarySystemGroupedBackground).opacity(0.75))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(Color.primary.opacity(0.04), lineWidth: 1)
+        )
     }
 
     @ToolbarContentBuilder
@@ -4254,7 +5200,7 @@ struct AnalyzerView: View {
                     .padding(12)
                     .background(.thinMaterial)
                     .cornerRadius(12)
-                    .padding(.bottom, 20)
+                    .padding(.bottom, overlayBottomPadding)
             }
         }
 
@@ -4267,11 +5213,19 @@ struct AnalyzerView: View {
                     .background(Color.green)
                     .foregroundStyle(.white)
                     .cornerRadius(12)
-                    .padding(.bottom, 80)
+                    .padding(.bottom, overlayBottomPadding + 48)
             }
         }
 
         if isLoading { LoadingView() }
+    }
+
+    private func toggleDropper() {
+        guard selectedImage != nil else { return }
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+            isDropperActive.toggle()
+        }
+        HapticManager.instance.impact(style: .soft)
     }
 
     private func resampleColors() {
@@ -4392,6 +5346,7 @@ struct ImageWorkspace: View {
     
     var body: some View {
         GeometryReader { geometry in
+            let metrics = displayMetrics(for: geometry)
             ZStack(alignment: .center) {
                 Color.clear
                     .background(
@@ -4405,31 +5360,29 @@ struct ImageWorkspace: View {
                     )
                 
                 VStack(spacing: 0) {
-                    Color.clear.frame(height: 0)
-                    Spacer()
+                    Spacer(minLength: 20)
                     
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .cornerRadius(20)
-                        .background(
-                            RoundedRectangle(cornerRadius: 20)
-                                .fill(Color(.systemBackground).opacity(0.9))
-                                .shadow(radius: 10, y: 5)
-                        )
-                        .padding(.horizontal, 16)
-                        .frame(maxWidth: min(geometry.size.width - 32, 500))
-                        .frame(maxHeight: UIScreen.main.bounds.height * 0.7)
-                        .gesture(
-                            DragGesture(minimumDistance: 0)
-                                .onEnded { value in
-                                    guard isDropperActive else { return }
-                                    handleDropperGesture(value: value, geometry: geometry)
-                                }
-                        )
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .fill(Color(.systemBackground).opacity(0.92))
+                            .shadow(radius: 10, y: 5)
+                        Image(uiImage: image)
+                            .resizable()
+                            .aspectRatio(image.size, contentMode: .fit)
+                            .frame(width: metrics.displaySize.width, height: metrics.displaySize.height)
+                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    }
+                    .frame(width: metrics.containerSize.width, height: metrics.containerSize.height)
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onEnded { value in
+                                guard isDropperActive else { return }
+                                handleDropperGesture(location: value.location, metrics: metrics)
+                            }
+                    )
                     
-                    Spacer()
-                    Color.clear.frame(height: 0)
+                    Spacer(minLength: 20)
                 }
                 .edgesIgnoringSafeArea(.all)
             }
@@ -4438,42 +5391,18 @@ struct ImageWorkspace: View {
         .padding(.top, 1)
     }
     
-    private func handleDropperGesture(value: DragGesture.Value, geometry: GeometryProxy) {
+    private func handleDropperGesture(location: CGPoint, metrics: ImageDisplayMetrics) {
         let imageSize = image.size
-        let containerSize = CGSize(
-            width: min(geometry.size.width - 40, 500),
-            height: min(geometry.size.height * 0.7, 500)
-        )
-        
-        let imageAspect = imageSize.width / imageSize.height
-        let containerAspect = containerSize.width / containerSize.height
-        
-        let displaySize: CGSize
-        let offset: CGPoint
-        
-        if imageAspect > containerAspect {
-            displaySize = CGSize(
-                width: containerSize.width,
-                height: containerSize.width / imageAspect
-            )
-            offset = CGPoint(
-                x: (geometry.size.width - containerSize.width) / 2,
-                y: (geometry.size.height - displaySize.height) / 2
-            )
-        } else {
-            displaySize = CGSize(
-                width: containerSize.height * imageAspect,
-                height: containerSize.height
-            )
-            offset = CGPoint(
-                x: (geometry.size.width - displaySize.width) / 2,
-                y: (geometry.size.height - containerSize.height) / 2
-            )
-        }
-        
-        let touchInContainer = value.location
-        let x = (touchInContainer.x - offset.x) / displaySize.width * imageSize.width
-        let y = (touchInContainer.y - offset.y) / displaySize.height * imageSize.height
+        let safeX = location.x - metrics.letterboxOffset.x
+        let safeY = location.y - metrics.letterboxOffset.y
+        guard safeX >= 0, safeY >= 0,
+              safeX <= metrics.displaySize.width,
+              safeY <= metrics.displaySize.height else { return }
+    let normalizedX = safeX / metrics.displaySize.width
+    let normalizedY = safeY / metrics.displaySize.height
+    let pixelPoint = image.pixelPoint(forNormalizedPoint: CGPoint(x: normalizedX, y: normalizedY))
+    let x = pixelPoint.x
+    let y = pixelPoint.y
         
         guard x >= 0, y >= 0, x < imageSize.width, y < imageSize.height else { return }
         
@@ -4485,6 +5414,38 @@ struct ImageWorkspace: View {
             }
         }
     }
+
+    private func displayMetrics(for geometry: GeometryProxy) -> ImageDisplayMetrics {
+        let containerSize = CGSize(
+            width: min(geometry.size.width - 40, 500),
+            height: min(geometry.size.height * 0.7, 500)
+        )
+        let imageAspect = image.size.width / image.size.height
+        let containerAspect = containerSize.width / containerSize.height
+        if imageAspect > containerAspect {
+            let displayHeight = containerSize.width / imageAspect
+            let verticalOffset = (containerSize.height - displayHeight) / 2
+            return ImageDisplayMetrics(
+                containerSize: containerSize,
+                displaySize: CGSize(width: containerSize.width, height: displayHeight),
+                letterboxOffset: CGPoint(x: 0, y: max(verticalOffset, 0))
+            )
+        } else {
+            let displayWidth = containerSize.height * imageAspect
+            let horizontalOffset = (containerSize.width - displayWidth) / 2
+            return ImageDisplayMetrics(
+                containerSize: containerSize,
+                displaySize: CGSize(width: displayWidth, height: containerSize.height),
+                letterboxOffset: CGPoint(x: max(horizontalOffset, 0), y: 0)
+            )
+        }
+    }
+}
+
+private struct ImageDisplayMetrics {
+    let containerSize: CGSize
+    let displaySize: CGSize
+    let letterboxOffset: CGPoint
 }
 
 struct PaletteStripView: View {
@@ -4503,6 +5464,99 @@ struct PaletteStripView: View {
     }
 }
 
+struct AnalyzerActionCard: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+    let tint: Color
+    var isDisabled: Bool = false
+    @Environment(\.ambitAccentColor) private var accentColor
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(accentColor.opacity(0.15))
+                    .frame(width: 48, height: 48)
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(tint)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(.headline, design: .monospaced, weight: .semibold))
+                Text(subtitle)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .frame(maxWidth: 220)
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color(uiColor: .systemBackground).opacity(0.95))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(accentColor.opacity(0.18), lineWidth: 1)
+        )
+        .opacity(isDisabled ? 0.4 : 1)
+    }
+}
+
+struct AnalyzerRecentImportCard: View {
+    let palette: SavedPalette
+
+    private var formattedTimestamp: String {
+        palette.timestamp.formatted(date: .abbreviated, time: .shortened)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 0) {
+                ForEach(palette.uiColors.indices, id: \.self) { index in
+                    Color(uiColor: palette.uiColors[index])
+                        .frame(width: 32, height: 48)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(palette.name)
+                    .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+                    .multilineTextAlignment(.leading)
+                Text(formattedTimestamp)
+                    .font(.system(.caption2, design: .monospaced))
+                    .foregroundColor(.secondary)
+            }
+
+            HStack(spacing: 8) {
+                Label("\(palette.uiColors.count) colors", systemImage: "swatchpalette")
+                Spacer()
+                Image(systemName: palette.isFavorite ? "star.fill" : "star")
+                    .foregroundColor(palette.isFavorite ? .yellow : .secondary.opacity(0.7))
+            }
+            .font(.system(.caption2, design: .monospaced))
+        }
+        .padding(14)
+        .frame(width: 180, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color(uiColor: .systemBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Color.primary.opacity(0.04), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.05), radius: 6, y: 4)
+    }
+}
+
 struct ColorCardView: View {
     let color: UIColor
     @State private var showDetail = false
@@ -4516,8 +5570,8 @@ struct ColorCardView: View {
                 .onTapGesture { showDetail = true; HapticManager.instance.impact(style: .light) }
 
             VStack(spacing: 4) {
-                Text(color.toHex() ?? "#000000").font(.system(.caption, design: .monospaced).weight(.bold)).lineLimit(1)
-                Text(color.toRGBString()).font(.system(.caption, design: .monospaced)).foregroundStyle(.secondary).lineLimit(1)
+                Text(color.toHex() ?? "#000000").font(.system(.caption, design: .monospaced).weight(.bold)).lineLimit(2).minimumScaleFactor(0.8).multilineTextAlignment(.center)
+                Text(color.toRGBString()).font(.system(.caption, design: .monospaced)).foregroundStyle(.secondary).lineLimit(2).minimumScaleFactor(0.8).multilineTextAlignment(.center)
             }
         }
         .padding(8)
@@ -4555,262 +5609,70 @@ struct ColorDetailSheetView: View {
     }
 }
 
-// MARK: - Tools
-struct ToolsView: View {
-    private let categories: [ToolCategory] = ToolCategory.defaultCategories
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 28) {
-                    toolsHero
-
-                    ForEach(categories) { category in
-                        VStack(alignment: .leading, spacing: 16) {
-                            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                                Text(category.icon)
-                                    .font(.system(size: 28))
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(category.title)
-                                        .font(.system(.title3, design: .monospaced, weight: .bold))
-                                    Text(category.subtitle)
-                                        .font(.system(.callout, design: .monospaced))
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-
-                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 16)], spacing: 16) {
-                                ForEach(category.modules) { module in
-                                    NavigationLink(destination: module.destination) {
-                                        ToolCard(module: module)
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                        }
-                        .padding()
-                        .background(.ultraThinMaterial)
-                        .background(
-                            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                .fill(Color(uiColor: .secondarySystemGroupedBackground).opacity(0.65))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                .stroke(Color.primary.opacity(0.04), lineWidth: 1)
-                        )
-                    }
-                }
-                .padding(.vertical, 32)
-                .padding(.horizontal)
-            }
-            .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
-            .toolbar { ToolbarItem(placement: .principal) { AppNavTitle(text: "Tools", size: 26, weight: .bold) } }
-        }
-    }
-
-    private var toolsHero: some View {
-        VStack(spacing: 18) {
-            HStack(alignment: .center, spacing: 16) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .fill(LinearGradient(colors: [.purple.opacity(0.25), .blue.opacity(0.2)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                        .frame(width: 86, height: 86)
-
-                    Image(systemName: "wand.and.sparkles")
-                        .font(.system(size: 36))
-                        .foregroundColor(.purple)
-                }
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Creative Toolbelt")
-                        .font(.system(.title2, design: .monospaced, weight: .bold))
-                    Text("Generate palettes, analyze assets, and prototype color systems with production-ready utilities.")
-                        .font(.system(.body, design: .monospaced))
-                        .foregroundColor(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-
-            HStack(spacing: 12) {
-                ToolStatChip(icon: "sparkles", title: "Smart", caption: "AI palette ideation")
-                ToolStatChip(icon: "slider.horizontal.3", title: "Precise", caption: "WCAG tuned")
-                ToolStatChip(icon: "square.grid.2x2", title: "Modular", caption: "Workflow ready")
-            }
-        }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(LinearGradient(colors: [Color.purple.opacity(0.12), Color.indigo.opacity(0.08)], startPoint: .topLeading, endPoint: .bottomTrailing))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-        )
-    }
-}
-
-fileprivate struct ToolCard: View {
-    let module: ToolModule
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(module.accent.opacity(0.18))
-                        .frame(width: 46, height: 46)
-                    Image(systemName: module.icon)
-                        .font(.system(size: 22))
-                        .foregroundColor(module.accent)
-                }
-
-            }
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text(module.title)
-                    .font(.system(.headline, design: .monospaced, weight: .semibold))
-                    .foregroundColor(.primary)
-                Text(module.subtitle)
-                    .font(.system(.callout, design: .monospaced))
-                    .foregroundColor(.secondary)
-                    .lineLimit(3)
-            }
-
-            HStack(spacing: 6) {
-                Text("Launch")
-                    .font(.system(.caption, design: .monospaced, weight: .semibold))
-                Image(systemName: "arrow.up.right")
-                    .font(.system(size: 12, weight: .bold))
-            }
-            .padding(.vertical, 6)
-            .padding(.horizontal, 12)
-            .background(module.accent.opacity(0.12))
-            .foregroundColor(module.accent)
-            .cornerRadius(14)
-        }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemBackground))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(Color.primary.opacity(0.05), lineWidth: 1)
-        )
-        .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 3)
-    }
-}
-
-fileprivate struct ToolStatChip: View {
-    let icon: String
-    let title: String
-    let caption: String
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon)
-                .font(.system(size: 16))
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.system(.caption, design: .monospaced, weight: .semibold))
-                Text(caption)
-                    .font(.system(.caption2, design: .monospaced))
-                    .foregroundColor(.secondary)
-            }
-        }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 14)
-        .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Color(uiColor: .systemBackground).opacity(0.9)))
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Color.primary.opacity(0.04), lineWidth: 1))
-    }
-}
-
-fileprivate struct ToolModule: Identifiable {
-    let id = UUID()
-    let title: String
-    let subtitle: String
-    let icon: String
-    let accent: Color
-    let destination: AnyView
-
-    init<T: View>(title: String, subtitle: String, icon: String, accent: Color, destination: T) {
-        self.title = title
-        self.subtitle = subtitle
-        self.icon = icon
-        self.accent = accent
-        self.destination = AnyView(destination)
-    }
-}
-
-fileprivate struct ToolCategory: Identifiable {
-    let id = UUID()
-    let title: String
-    let subtitle: String
-    let icon: String
-    let modules: [ToolModule]
-
-    static let defaultCategories: [ToolCategory] = [
-        ToolCategory(
-            title: "Inspiration",
-            subtitle: "Spin up fresh palettes and branded moodboards.",
-            icon: "✨",
-            modules: [
-                ToolModule(title: "AI Palette Generator", subtitle: "Create intelligent harmony sets from any source color.", icon: "sparkles", accent: .purple, destination: AIPaletteGeneratorView()),
-                ToolModule(title: "Brand Color Extractor", subtitle: "Sample logos and marketing assets to craft signature palettes.", icon: "wand.and.stars", accent: .blue, destination: BrandColorExtractorView()),
-                ToolModule(title: "Inspiration Gallery", subtitle: "Browse curated palettes and save standout combinations.", icon: "photo.on.rectangle", accent: .orange, destination: InspirationGalleryView())
-            ]
-        ),
-        ToolCategory(
-            title: "Extraction",
-            subtitle: "Reverse engineer colors from the web and real-world signals.",
-            icon: "🕸️",
-            modules: [
-                ToolModule(title: "Web Palette Extractor", subtitle: "Pull brand-ready colors from any URL complete with favicons.", icon: "globe", accent: .teal, destination: WebsiteExtractorView()),
-                ToolModule(title: "Color Trends", subtitle: "Track the palettes shaping digital products this year.", icon: "chart.line.uptrend.xyaxis", accent: .pink, destination: ColorTrendsView())
-            ]
-        ),
-        ToolCategory(
-            title: "Utilities",
-            subtitle: "Prototype, test, and validate color systems in minutes.",
-            icon: "🛠️",
-            modules: [
-                ToolModule(title: "Random Color Lab", subtitle: "Discover unexpected hero shades with tactile sampling.", icon: "die.face.5", accent: .green, destination: RandomColorView()),
-                ToolModule(title: "Interactive Mixer", subtitle: "Blend hues on the fly and grab pixel-perfect codes.", icon: "drop.fill", accent: .cyan, destination: InteractiveColorMixerView()),
-                ToolModule(title: "Contrast Studio", subtitle: "Test WCAG ratios with dynamic previews and guidance.", icon: "circle.lefthalf.filled", accent: .red, destination: InteractiveContrastCheckerView()),
-                ToolModule(title: "Vision Simulator", subtitle: "Preview palettes through common color blindness filters.", icon: "eye.trianglebadge.exclamationmark", accent: .indigo, destination: ColorblindSimulatorView()),
-                ToolModule(title: "Gradient Forge", subtitle: "Craft cinematic gradients with precision controls.", icon: "rectangle.portrait.fill", accent: .yellow, destination: GradientCreatorView())
-            ]
-        )
-    ]
-}
-
 // MARK: - Learning Hub
 
 struct LearningView: View {
+    @Environment(\.ambitAccentColor) private var accentColor
     private let modules = LearningGuide.defaultModules
+    @State private var searchText = ""
+    @AppStorage("learningFavoriteModuleIDs") private var favoriteModuleIDsData: Data = Data()
+    @AppStorage("learningLastModuleID") private var lastModuleID: String = ""
+
+    private var favoriteIDs: [String] {
+        guard let decoded = try? JSONDecoder().decode([String].self, from: favoriteModuleIDsData) else { return [] }
+        return decoded
+    }
+
+    private var favoriteSet: Set<String> { Set(favoriteIDs) }
+
+    private var favoriteModules: [LearningGuide] {
+        modules.filter { favoriteSet.contains($0.id.uuidString) }
+    }
+
+    private var lastModule: LearningGuide? {
+        modules.first { $0.id.uuidString == lastModuleID }
+    }
+
+    private var filteredModules: [LearningGuide] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return modules }
+        return modules.filter {
+            $0.title.localizedCaseInsensitiveContains(query) ||
+            $0.subtitle.localizedCaseInsensitiveContains(query)
+        }
+    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 28) {
                     learningHero
-                    featuredCollection
-
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 240), spacing: 18)], spacing: 18) {
-                        ForEach(modules) { module in
-                            NavigationLink(destination: module.destination) {
-                                LearningGuideCard(module: module)
-                            }
-                            .buttonStyle(.plain)
-                        }
+                    learningQuickActions
+                    if !favoriteModules.isEmpty {
+                        learningFavoritesStrip
                     }
+                    featuredCollection
+                    learningModuleGrid
                 }
                 .padding(.horizontal)
-                .padding(.vertical, 32)
+                .padding(.top, 32)
             }
-            .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
             .toolbar { ToolbarItem(placement: .principal) { AppNavTitle(text: "Learning", size: 26, weight: .bold) } }
+            .searchable(text: $searchText, prompt: "Search guides or skills")
+        }
+    }
+
+    private var learningModuleGrid: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 240), spacing: 18)], spacing: 18) {
+            ForEach(filteredModules) { module in
+                NavigationLink(destination: module.destination) {
+                    LearningGuideCard(module: module,
+                                      isFavorite: favoriteSet.contains(module.id.uuidString),
+                                      favoriteAction: { toggleFavorite(module) })
+                }
+                .buttonStyle(.plain)
+                .simultaneousGesture(TapGesture().onEnded { recordAccess(for: module) })
+            }
         }
     }
 
@@ -4819,18 +5681,18 @@ struct LearningView: View {
             HStack(alignment: .center, spacing: 18) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 26, style: .continuous)
-                        .fill(LinearGradient(colors: [.cyan.opacity(0.22), .mint.opacity(0.18)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .fill(LinearGradient(colors: [accentColor.opacity(0.22), accentColor.opacity(0.08)], startPoint: .topLeading, endPoint: .bottomTrailing))
                         .frame(width: 96, height: 96)
 
                     Image(systemName: "graduationcap.fill")
                         .font(.system(size: 40))
-                        .foregroundColor(.mint)
+                        .foregroundColor(accentColor)
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Color Academy")
                         .font(.system(.title2, design: .monospaced, weight: .bold))
-                    Text("Deep-dive modules packed with strategy, psychology, and production craft. Every guide feels like its own mini app experience.")
+                    Text("Deep-dive modules packed with psychology, storytelling, and production craft.")
                         .font(.system(.body, design: .monospaced))
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -4846,12 +5708,67 @@ struct LearningView: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 32, style: .continuous)
-                .fill(LinearGradient(colors: [Color.cyan.opacity(0.16), Color.cyan.opacity(0.04)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .fill(LinearGradient(colors: [accentColor.opacity(0.16), accentColor.opacity(0.04)], startPoint: .topLeading, endPoint: .bottomTrailing))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 32, style: .continuous)
-                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                .stroke(accentColor.opacity(0.18), lineWidth: 1)
         )
+    }
+
+    private var learningQuickActions: some View {
+        ViewThatFits {
+            HStack(spacing: 12) { quickActionContent }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) { quickActionContent }
+                    .padding(.horizontal, 2)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var quickActionContent: some View {
+        LearningQuickActionButton(icon: "play.circle.fill",
+                                  title: "Resume Last",
+                                  subtitle: lastModule?.title ?? "No recent lessons",
+                                  tint: .mint,
+                                  isDisabled: lastModule == nil) {
+            guard let module = lastModule else { return }
+            recordAccess(for: module)
+        }
+
+        LearningQuickActionButton(icon: "die.face.5.fill",
+                                  title: "Random Lab",
+                                  subtitle: "Mix up your practice",
+                                  tint: .purple) {
+            if let module = modules.randomElement() {
+                recordAccess(for: module)
+                lastModuleID = module.id.uuidString
+            }
+        }
+
+        LearningQuickActionButton(icon: "star", title: "Show Favorites", subtitle: "\(favoriteModules.count) pinned", tint: .orange, isDisabled: favoriteModules.isEmpty) {
+            // no-op, visual indicator only
+        }
+    }
+
+    private var learningFavoritesStrip: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Pinned Labs")
+                .font(.system(.title3, design: .monospaced, weight: .bold))
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 16) {
+                    ForEach(favoriteModules) { module in
+                        FavoriteLearningBadge(module: module,
+                                              isCompleted: false,
+                                              favoriteAction: { toggleFavorite(module) })
+                            .frame(width: 220)
+                    }
+                }
+                .padding(.horizontal, 4)
+            }
+        }
     }
 
     private var featuredCollection: some View {
@@ -4869,10 +5786,29 @@ struct LearningView: View {
             }
         }
     }
+
+    private func toggleFavorite(_ module: LearningGuide) {
+        var ids = favoriteIDs
+        let moduleID = module.id.uuidString
+        if let idx = ids.firstIndex(of: moduleID) {
+            ids.remove(at: idx)
+        } else {
+            ids.insert(moduleID, at: 0)
+        }
+        if let data = try? JSONEncoder().encode(ids) {
+            favoriteModuleIDsData = data
+        }
+    }
+
+    private func recordAccess(for module: LearningGuide) {
+        lastModuleID = module.id.uuidString
+    }
 }
 
 fileprivate struct LearningGuideCard: View {
     let module: LearningGuide
+    var isFavorite: Bool
+    var favoriteAction: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -4895,6 +5831,13 @@ fileprivate struct LearningGuideCard: View {
                         .foregroundColor(.secondary)
                         .lineLimit(3)
                 }
+
+                Spacer()
+                Button(action: favoriteAction) {
+                    Image(systemName: isFavorite ? "star.fill" : "star")
+                        .foregroundColor(isFavorite ? .yellow : .secondary)
+                }
+                .buttonStyle(.plain)
             }
 
             HStack(spacing: 16) {
@@ -4907,9 +5850,8 @@ fileprivate struct LearningGuideCard: View {
                     .cornerRadius(14)
 
                 Spacer()
-
-                Image(systemName: "arrow.up.forward.app")
-                    .font(.system(size: 15, weight: .semibold))
+                Label("\(module.estimatedMinutes) min", systemImage: "clock")
+                    .font(.system(.caption2, design: .monospaced))
                     .foregroundColor(.secondary)
             }
         }
@@ -4949,10 +5891,12 @@ fileprivate struct LearningShowcaseCard: View {
                 .font(.system(.title3, design: .monospaced, weight: .bold))
                 .foregroundColor(.white)
 
-            Text(description)
-                .font(.system(.callout, design: .monospaced))
-                .foregroundColor(Color.white.opacity(0.85))
-                .lineLimit(3)
+            NoHyphenationLabel(
+                text: description,
+                font: UIFont.monospacedSystemFont(ofSize: 14, weight: .regular),
+                color: UIColor.white.withAlphaComponent(0.85)
+            )
+            .lineLimit(3)
 
             Spacer(minLength: 12)
 
@@ -4977,6 +5921,104 @@ fileprivate struct LearningShowcaseCard: View {
                 .stroke(.white.opacity(0.1), lineWidth: 1)
         )
         .shadow(color: colors.first?.opacity(0.4) ?? .black.opacity(0.3), radius: 16, x: 0, y: 8)
+    }
+}
+
+fileprivate struct FavoriteLearningBadge: View {
+    let module: LearningGuide
+    let isCompleted: Bool
+    let favoriteAction: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text(module.title)
+                    .font(.system(.headline, design: .monospaced, weight: .semibold))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+                    .multilineTextAlignment(.leading)
+                Spacer()
+                Button(action: favoriteAction) {
+                    Image(systemName: "star.fill")
+                        .foregroundColor(.yellow)
+                }
+                .buttonStyle(.plain)
+            }
+
+            Text(module.subtitle)
+                .font(.system(.caption, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+
+            HStack(spacing: 8) {
+                Label(module.experienceTier, systemImage: "sparkles")
+                Label("\(module.estimatedMinutes) min", systemImage: "clock")
+            }
+            .font(.system(.caption2, design: .monospaced, weight: .semibold))
+            .foregroundStyle(.secondary)
+
+            if isCompleted {
+                Label("Completed", systemImage: "checkmark.circle.fill")
+                    .font(.system(.caption, design: .monospaced, weight: .semibold))
+                    .foregroundColor(module.accent)
+            }
+        }
+        .padding(16)
+        .frame(width: 220, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color(uiColor: .secondarySystemBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(Color.primary.opacity(0.05), lineWidth: 1)
+        )
+    }
+}
+
+fileprivate struct LearningQuickActionButton: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+    let tint: Color
+    var isDisabled: Bool = false
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(tint.opacity(0.15))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: icon)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(tint)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.system(.headline, design: .monospaced, weight: .semibold))
+                        .foregroundColor(.primary.opacity(isDisabled ? 0.4 : 1))
+                    Text(subtitle)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+                Spacer()
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(Color(uiColor: .secondarySystemBackground).opacity(isDisabled ? 0.6 : 0.95))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .stroke(Color.primary.opacity(0.05), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.45 : 1)
     }
 }
 
@@ -5005,27 +6047,29 @@ fileprivate struct LearningGuide: Identifiable {
     let icon: String
     let accent: Color
     let experienceTier: String
+    let estimatedMinutes: Int
     let destination: AnyView
 
-    init<T: View>(title: String, subtitle: String, icon: String, accent: Color, experienceTier: String, destination: T) {
+    init<T: View>(title: String, subtitle: String, icon: String, accent: Color, experienceTier: String, estimatedMinutes: Int = 15, destination: T) {
         self.title = title
         self.subtitle = subtitle
         self.icon = icon
         self.accent = accent
         self.experienceTier = experienceTier
+        self.estimatedMinutes = estimatedMinutes
         self.destination = AnyView(destination)
     }
 
     static let defaultModules: [LearningGuide] = [
-        LearningGuide(title: "Color Theory Guide", subtitle: "Master harmony, hierarchy, and palette structure through immersive lessons.", icon: "circle.hexagongrid", accent: .purple, experienceTier: "Designer", destination: ColorTheoryGuideView()),
-        LearningGuide(title: "Color Psychology", subtitle: "Map emotion, messaging, and brand strategy to precise hues.", icon: "brain.head.profile", accent: .pink, experienceTier: "Strategist", destination: ColorPsychologyGuideView()),
-        LearningGuide(title: "Color Spaces", subtitle: "Navigate sRGB, Display P3, and print workflows with confidence.", icon: "rectangle.3.group", accent: .mint, experienceTier: "Production", destination: ColorSpacesGuideView()),
-        LearningGuide(title: "Color Blindness", subtitle: "Design accessible experiences with simulations and best practices.", icon: "eye.fill", accent: .teal, experienceTier: "Accessibility", destination: ColorBlindnessGuideView()),
-        LearningGuide(title: "Color Glossary", subtitle: "Reference the essential terminology powering professional color work.", icon: "book", accent: .blue, experienceTier: "Reference", destination: ColorGlossaryView()),
-        LearningGuide(title: "Typography Guide", subtitle: "Align hues with type systems to create expressive visual language.", icon: "textformat", accent: .orange, experienceTier: "Brand", destination: TypographyGuideView()),
-        LearningGuide(title: "Digital ↔ Print", subtitle: "Translate pixels to paper with calibrated, reliable conversions.", icon: "printer.fill", accent: .indigo, experienceTier: "Ops", destination: DigitalPrintGuideView()),
-        LearningGuide(title: "Brand Color Library", subtitle: "Study iconic palettes and save favorites to your workspace.", icon: "building.2.fill", accent: .red, experienceTier: "Inspiration", destination: BrandColorsGuideView()),
-        LearningGuide(title: "Named Colors", subtitle: "Explore extended color sets with searchable metadata and swatches.", icon: "list.bullet", accent: .yellow, experienceTier: "Explorer", destination: NamedColorsView())
+        LearningGuide(title: "Color Theory Guide", subtitle: "Master harmony, hierarchy, and palette structure through immersive lessons.", icon: "circle.hexagongrid", accent: .purple, experienceTier: "Designer", estimatedMinutes: 18, destination: ColorTheoryGuideView()),
+        LearningGuide(title: "Color Psychology", subtitle: "Comprehensive research-based guide to color's psychological and physiological effects with authentic citations.", icon: "brain.head.profile", accent: .pink, experienceTier: "Strategist", estimatedMinutes: 35, destination: ColorPsychologyGuideView()),
+        LearningGuide(title: "Color Spaces", subtitle: "Navigate sRGB, Display P3, and print workflows with confidence.", icon: "rectangle.3.group", accent: .mint, experienceTier: "Production", estimatedMinutes: 22, destination: ColorSpacesGuideView()),
+        LearningGuide(title: "Color Blindness", subtitle: "Design accessible experiences with simulations and best practices.", icon: "eye.fill", accent: .teal, experienceTier: "Accessibility", estimatedMinutes: 14, destination: ColorBlindnessGuideView()),
+        LearningGuide(title: "Color Glossary", subtitle: "Reference the essential terminology powering professional color work.", icon: "book", accent: .blue, experienceTier: "Reference", estimatedMinutes: 10, destination: ColorGlossaryView()),
+        LearningGuide(title: "Typography Guide", subtitle: "Align hues with type systems to create expressive visual language.", icon: "textformat", accent: .orange, experienceTier: "Brand", estimatedMinutes: 17, destination: TypographyGuideView()),
+        LearningGuide(title: "Digital ↔ Print", subtitle: "Translate pixels to paper with calibrated, reliable conversions.", icon: "printer.fill", accent: .indigo, experienceTier: "Ops", estimatedMinutes: 20, destination: DigitalPrintGuideView()),
+        LearningGuide(title: "Brand Color Library", subtitle: "Study iconic palettes and save favorites to your workspace.", icon: "building.2.fill", accent: .red, experienceTier: "Inspiration", estimatedMinutes: 12, destination: BrandColorsGuideView()),
+        LearningGuide(title: "Named Colors", subtitle: "Explore extended color sets with searchable metadata and swatches.", icon: "list.bullet", accent: .yellow, experienceTier: "Explorer", estimatedMinutes: 9, destination: NamedColorsView())
     ]
 }
 
@@ -5339,9 +6383,11 @@ struct WebsiteExtractorView: View {
 // MARK: - Library
 
 struct LibraryView: View {
+    @Environment(\.ambitAccentColor) private var accentColor
     @Query(sort: \SavedPalette.timestamp, order: .reverse) private var savedPalettes: [SavedPalette]
     @Query(sort: \SavedCard.timestamp, order: .reverse) private var savedCards: [SavedCard]
-    @Binding var selectedTab: Int
+    @Query(sort: \SavedGradient.timestamp, order: .reverse) private var savedGradients: [SavedGradient]
+    @Binding var selectedTab: RootTab
     @State private var showCardCreator = false
 
     var body: some View {
@@ -5351,10 +6397,13 @@ struct LibraryView: View {
                     libraryHero
                     statsSection
                     quickActions
+                    if hasFavorites {
+                        favoritesSpotlight
+                    }
 
-                    if savedPalettes.isEmpty && savedCards.isEmpty {
+                    if savedPalettes.isEmpty && savedCards.isEmpty && savedGradients.isEmpty {
                         LibraryEmptyState(createAction: { showCardCreator = true },
-                                          analyzeAction: { selectedTab = 0 })
+                                          analyzeAction: { selectedTab = .analyzer })
                     } else {
                         if !savedColorSwatches.isEmpty {
                             savedColorsSection
@@ -5362,15 +6411,17 @@ struct LibraryView: View {
                         if !savedPalettes.isEmpty {
                             paletteSection
                         }
+                        if !savedGradients.isEmpty {
+                            gradientSection
+                        }
                         if !savedCards.isEmpty {
                             cardSection
                         }
                     }
                 }
                 .padding(.horizontal)
-                .padding(.vertical, 32)
+                .padding(.top, 32)
             }
-            .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
             .toolbar { ToolbarItem(placement: .principal) { AppNavTitle(text: "Library", size: 26) } }
             .sheet(isPresented: $showCardCreator) { CardCreatorView(originalImage: nil, extractedColors: []) }
         }
@@ -5382,6 +6433,26 @@ struct LibraryView: View {
 
     private var recentCards: [SavedCard] {
         Array(savedCards.prefix(6))
+    }
+
+    private var recentGradients: [SavedGradient] {
+        Array(savedGradients.prefix(6))
+    }
+
+    private var favoritePalettes: [SavedPalette] {
+        savedPalettes.filter(\.isFavorite)
+    }
+
+    private var favoriteCards: [SavedCard] {
+        savedCards.filter(\.isFavorite)
+    }
+
+    private var favoriteGradients: [SavedGradient] {
+        savedGradients.filter(\.isFavorite)
+    }
+
+    private var hasFavorites: Bool {
+        !(favoritePalettes.isEmpty && favoriteCards.isEmpty && favoriteGradients.isEmpty)
     }
 
     private var savedColorSwatches: [LibraryColorSwatch] {
@@ -5417,6 +6488,10 @@ struct LibraryView: View {
         [GridItem(.adaptive(minimum: 180, maximum: 240), spacing: 16)]
     }
 
+    private var gradientColumns: [GridItem] {
+        [GridItem(.adaptive(minimum: 180, maximum: 240), spacing: 16)]
+    }
+
     private var swatchColumns: [GridItem] {
         [GridItem(.adaptive(minimum: 84, maximum: 110), spacing: 14)]
     }
@@ -5438,7 +6513,7 @@ struct LibraryView: View {
                     Text("Palette Vault")
                         .font(.system(.title2, design: .monospaced, weight: .bold))
                         .foregroundColor(.primary)
-                    Text("Organize captured palettes, exported case studies, and remix them into new stories.")
+                    Text("Organize saved palettes, exported case studies, and remix them into new stories.")
                         .font(.system(.body, design: .monospaced))
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -5460,11 +6535,11 @@ struct LibraryView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 32, style: .continuous)
-                .fill(LinearGradient(colors: [Color.indigo.opacity(0.14), Color.blue.opacity(0.1)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .fill(LinearGradient(colors: [accentColor.opacity(0.2), accentColor.opacity(0.08)], startPoint: .topLeading, endPoint: .bottomTrailing))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 32, style: .continuous)
-                .stroke(Color.primary.opacity(0.05), lineWidth: 1)
+                .stroke(accentColor.opacity(0.15), lineWidth: 1)
         )
     }
 
@@ -5473,6 +6548,7 @@ struct LibraryView: View {
             HStack(spacing: 12) {
                 LibraryStatChip(icon: "paintpalette.fill", title: "\(savedPalettes.count)", subtitle: "Saved Palettes", tint: .purple)
                 LibraryStatChip(icon: "square.stack.3d.down.right.fill", title: "\(savedCards.count)", subtitle: "Card Exports", tint: .orange)
+                LibraryStatChip(icon: "aqi.medium", title: "\(savedGradients.count)", subtitle: "Saved Gradients", tint: .teal)
                 LibraryStatChip(icon: "clock", title: lastSavedSummary, subtitle: "Latest Update", tint: .blue)
             }
             .padding(.horizontal, 2)
@@ -5486,12 +6562,16 @@ struct LibraryView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
-                    LibraryActionButton(icon: "sparkles", title: "Capture Palette", subtitle: "Jump back to Analyzer") {
-                        selectedTab = 0
+                    LibraryActionButton(icon: "sparkles", title: "Import Palette", subtitle: "Jump back to Analyzer") {
+                        selectedTab = .analyzer
                     }
 
-                    LibraryActionButton(icon: "hammer", title: "Open Tools", subtitle: "Launch creative utilities") {
-                        selectedTab = 1
+                    LibraryActionButton(icon: "paintpalette", title: "Open Palettes", subtitle: "Remix saved colors") {
+                        selectedTab = .palettes
+                    }
+
+                    LibraryActionButton(icon: "aqi.medium", title: "Open Gradients", subtitle: "Blend cinematic hues") {
+                        selectedTab = .gradients
                     }
 
                     LibraryActionButton(icon: "plus.circle.fill", title: "New Showcase Card", subtitle: "Design from saved colors") {
@@ -5501,6 +6581,76 @@ struct LibraryView: View {
                 .padding(.horizontal, 2)
             }
         }
+    }
+
+    private var favoritesSpotlight: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            LibrarySectionHeader(title: "Favorites", subtitle: "Pinned palettes, gradients, and cards.")
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 14) {
+                    ForEach(favoritePalettes) { palette in
+                        NavigationLink { PaletteDetailView(palette: palette) } label: {
+                            FavoritePaletteTile(palette: palette)
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    ForEach(favoriteGradients) { gradient in
+                        FavoriteGradientTile(gradient: gradient)
+                    }
+
+                    ForEach(favoriteCards) { card in
+                        FavoriteCardTile(card: card)
+                    }
+                }
+                .padding(.horizontal, 4)
+            }
+
+            favoriteActionRow
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.ultraThinMaterial)
+        .background(
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .fill(Color(uiColor: .secondarySystemGroupedBackground).opacity(0.85))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .stroke(Color.primary.opacity(0.05), lineWidth: 1)
+        )
+    }
+
+    private var favoriteActionRow: some View {
+        ViewThatFits {
+            HStack(spacing: 12) { favoriteActionButtons }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) { favoriteActionButtons }
+                    .padding(.horizontal, 2)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var favoriteActionButtons: some View {
+        FavoriteActionChip(icon: "paintpalette.fill",
+                           title: "Palettes",
+                           count: favoritePalettes.count,
+                           isDisabled: favoritePalettes.isEmpty,
+                           action: { selectedTab = .palettes })
+
+        FavoriteActionChip(icon: "aqi.medium",
+                           title: "Gradients",
+                           count: favoriteGradients.count,
+                           isDisabled: favoriteGradients.isEmpty,
+                           action: { selectedTab = .gradients })
+
+        FavoriteActionChip(icon: "rectangle.portrait.on.rectangle",
+                           title: "Cards",
+                           count: favoriteCards.count,
+                           isDisabled: favoriteCards.isEmpty,
+                           action: { selectedTab = .cards })
     }
 
     private var paletteSection: some View {
@@ -5535,9 +6685,38 @@ struct LibraryView: View {
         )
     }
 
+    private var gradientSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            LibrarySectionHeader(title: "Saved Gradients", subtitle: "All your cinematic blends organized.")
+
+            LazyVGrid(columns: gradientColumns, spacing: 18) {
+                ForEach(recentGradients) { gradient in
+                    LibraryGradientCard(gradient: gradient)
+                }
+            }
+
+            if savedGradients.count > recentGradients.count {
+                Text("Showing latest \(recentGradients.count) of \(savedGradients.count) gradients.")
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.ultraThinMaterial)
+        .background(
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .fill(Color(uiColor: .secondarySystemGroupedBackground).opacity(0.85))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .stroke(Color.primary.opacity(0.05), lineWidth: 1)
+        )
+    }
+
     private var savedColorsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            LibrarySectionHeader(title: "Saved Colors", subtitle: "Every swatch you've captured across palettes.")
+            LibrarySectionHeader(title: "Saved Colors", subtitle: "Every swatch you've saved across palettes.")
 
             LazyVGrid(columns: swatchColumns, spacing: 16) {
                 ForEach(Array(savedColorSwatches.prefix(48))) { swatch in
@@ -5599,12 +6778,13 @@ fileprivate struct LibraryStatChip: View {
     let title: String
     let subtitle: String
     var tint: Color = .accentColor
+    @Environment(\.ambitAccentColor) private var accentColor
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(tint.opacity(0.12))
+                    .fill(accentColor.opacity(0.18))
                     .frame(width: 38, height: 38)
                 Image(systemName: icon)
                     .font(.system(size: 18, weight: .semibold))
@@ -5624,20 +6804,22 @@ fileprivate struct LibraryStatChip: View {
         .padding(.horizontal, 16)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemBackground).opacity(0.92))
+                .fill(LinearGradient(colors: [accentColor.opacity(0.12), accentColor.opacity(0.04)],
+                                     startPoint: .topLeading,
+                                     endPoint: .bottomTrailing))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(tint.opacity(0.08), lineWidth: 1)
+                .stroke(accentColor.opacity(0.2), lineWidth: 1)
         )
     }
 }
-
 fileprivate struct LibraryActionButton: View {
     let icon: String
     let title: String
     let subtitle: String
     let action: () -> Void
+    @Environment(\.ambitAccentColor) private var accentColor
 
     var body: some View {
         Button(action: action) {
@@ -5659,16 +6841,144 @@ fileprivate struct LibraryActionButton: View {
             .padding(18)
             .background(
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(Color(uiColor: .systemBackground).opacity(0.96))
+                    .fill(LinearGradient(colors: [accentColor.opacity(0.08), Color(uiColor: .systemBackground)],
+                                         startPoint: .topLeading,
+                                         endPoint: .bottomTrailing))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .stroke(Color.primary.opacity(0.05), lineWidth: 1)
+                    .stroke(accentColor.opacity(0.15), lineWidth: 1)
             )
             .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
         }
         .buttonStyle(.plain)
         .frame(width: 220)
+    }
+}
+
+fileprivate struct FavoriteStarButton: View {
+    var isFavorite: Bool
+    var action: () -> Void
+    @Environment(\.ambitAccentColor) private var accentColor
+
+    var body: some View {
+        Button {
+            HapticManager.instance.impact(style: .soft)
+            action()
+        } label: {
+            Image(systemName: isFavorite ? "star.fill" : "star")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(isFavorite ? .yellow : accentColor)
+                .padding(8)
+                .background(.ultraThinMaterial)
+                .clipShape(Circle())
+                .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+fileprivate struct FavoriteShareButton: View {
+    var action: () -> Void
+    @Environment(\.ambitAccentColor) private var accentColor
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "square.and.arrow.up")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(accentColor)
+                .padding(8)
+                .background(accentColor.opacity(0.12))
+                .clipShape(Circle())
+                .shadow(color: accentColor.opacity(0.25), radius: 4, y: 2)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+fileprivate struct FavoriteActionChip: View {
+    let icon: String
+    let title: String
+    let count: Int
+    var isDisabled: Bool = false
+    let action: () -> Void
+    @Environment(\.ambitAccentColor) private var accentColor
+
+    private var subtitle: String {
+        count == 1 ? "1 favorite" : "\(count) favorites"
+    }
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(accentColor.opacity(0.18))
+                        .frame(width: 32, height: 32)
+                    Image(systemName: icon)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(accentColor)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.system(.headline, design: .monospaced, weight: .semibold))
+                        .foregroundColor(isDisabled ? .secondary : .primary)
+                    Text(subtitle)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundColor(.secondary)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(isDisabled ? .secondary.opacity(0.6) : accentColor)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(LinearGradient(colors: [accentColor.opacity(0.12), Color(uiColor: .systemBackground)],
+                                         startPoint: .topLeading,
+                                         endPoint: .bottomTrailing))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(accentColor.opacity(0.2), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.4 : 1)
+    }
+}
+
+struct CapsuleTag: View {
+    let text: String
+    let icon: String
+    var accentColor: Color?
+
+    var body: some View {
+        Label {
+            NoHyphenationLabel(
+                text: text,
+                font: UIFont.monospacedSystemFont(ofSize: 11, weight: .semibold),
+                color: UIColor.label,
+                numberOfLines: 1,
+                lineBreakMode: .byTruncatingTail
+            )
+        } icon: {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .bold))
+        }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
+        .background(
+            Capsule()
+                .fill(accentColor?.opacity(0.18) ?? Color(uiColor: .secondarySystemGroupedBackground))
+        )
+        .overlay(
+            Capsule()
+                .stroke(accentColor?.opacity(0.35) ?? Color.primary.opacity(0.08), lineWidth: 1)
+        )
     }
 }
 
@@ -5760,7 +7070,7 @@ fileprivate struct LibraryEmptyState: View {
 
             HStack(spacing: 12) {
                 Button(action: analyzeAction) {
-                    Label("Capture Palette", systemImage: "sparkles")
+                    Label("Import Palette", systemImage: "sparkles")
                         .font(.system(.headline, design: .monospaced, weight: .semibold))
                         .padding(.vertical, 10)
                         .padding(.horizontal, 16)
@@ -5794,33 +7104,243 @@ struct PaletteLibraryItem: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             if let img = palette.uiImage {
-                Image(uiImage: img).resizable().aspectRatio(contentMode: .fill).frame(height: 120).clipped()
+                Image(uiImage: img)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(height: 120)
+                    .clipped()
             } else {
                 Color.gray.opacity(0.2).frame(height: 120)
             }
             VStack(alignment: .leading, spacing: 4) {
-                Text(palette.name).font(.system(.headline, design: .monospaced))
-                Text(palette.timestamp.formatted()).font(.system(.caption, design: .monospaced)).foregroundStyle(.secondary)
+                Text(palette.name)
+                    .font(.system(.headline, design: .monospaced))
+                Text(palette.timestamp.formatted())
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.secondary)
                 HStack(spacing: 0) {
-                    ForEach(palette.uiColors.indices, id: \.self) {
-                        RoundedRectangle(cornerRadius: 4).fill(Color(uiColor: palette.uiColors[$0])).frame(height: 20)
+                    ForEach(palette.uiColors.indices, id: \.self) { index in
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color(uiColor: palette.uiColors[index]))
+                            .frame(height: 20)
                     }
                 }
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
             }
-            .padding(.horizontal, 10).padding(.bottom, 10)
+            .padding(.horizontal, 10)
+            .padding(.bottom, 12)
         }
-        .background(Color(uiColor: .systemGroupedBackground))
-        .cornerRadius(12).shadow(radius: 2)
+        .background(Color(.systemBackground))
+        .cornerRadius(16)
+        .shadow(color: .black.opacity(0.08), radius: 6, y: 3)
+        .overlay(alignment: .topTrailing) {
+            FavoriteStarButton(isFavorite: palette.isFavorite) {
+                palette.isFavorite.toggle()
+            }
+            .padding(8)
+        }
     }
 }
 
 struct CardLibraryItem: View {
     let card: SavedCard
     var body: some View {
-        if let img = card.uiImage {
-            Image(uiImage: img).resizable().scaledToFit().cornerRadius(12).shadow(radius: 2)
-        } else {
-            Color.gray.opacity(0.2).aspectRatio(1, contentMode: .fit).cornerRadius(12).shadow(radius: 2)
+        ZStack(alignment: .topTrailing) {
+            if let img = card.uiImage {
+                Image(uiImage: img)
+                    .resizable()
+                    .scaledToFit()
+                    .cornerRadius(16)
+                    .shadow(color: .black.opacity(0.08), radius: 8, y: 4)
+            } else {
+                Color.gray.opacity(0.2)
+                    .aspectRatio(1, contentMode: .fit)
+                    .cornerRadius(16)
+                    .shadow(color: .black.opacity(0.05), radius: 6, y: 3)
+            }
+
+            FavoriteStarButton(isFavorite: card.isFavorite) {
+                card.isFavorite.toggle()
+            }
+            .padding(10)
+        }
+    }
+}
+
+struct LibraryGradientCard: View {
+    let gradient: SavedGradient
+
+    private var gradientColors: [Color] {
+        let converted = gradient.colors.map { Color(uiColor: $0) }
+        return converted.isEmpty ? [Color.gray, Color.gray.opacity(0.4)] : converted
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(LinearGradient(colors: gradientColors,
+                                     startPoint: gradient.startPoint,
+                                     endPoint: gradient.endPoint))
+                .frame(height: 120)
+                .overlay(alignment: .topTrailing) {
+                    FavoriteStarButton(isFavorite: gradient.isFavorite) {
+                        gradient.isFavorite.toggle()
+                    }
+                    .padding(10)
+                }
+
+            Text(gradient.name)
+                .font(.system(.headline, design: .monospaced))
+            HStack {
+                Label("\(gradient.colors.count) stops", systemImage: "slider.horizontal.3")
+                Spacer()
+                Text(gradient.timestamp.formatted(date: .abbreviated, time: .omitted))
+            }
+            .font(.system(.caption, design: .monospaced))
+            .foregroundColor(.secondary)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(uiColor: .systemBackground))
+        .cornerRadius(20)
+        .shadow(color: .black.opacity(0.08), radius: 8, y: 4)
+    }
+}
+
+struct FavoritePaletteTile: View {
+    let palette: SavedPalette
+    @State private var showShare = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 0) {
+                ForEach(palette.uiColors.indices, id: \.self) { idx in
+                    Color(uiColor: palette.uiColors[idx])
+                }
+            }
+            .frame(height: 56)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+            Text(palette.name)
+                .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+                .multilineTextAlignment(.leading)
+            Text(palette.timestamp.formatted(date: .abbreviated, time: .omitted))
+                .font(.system(.caption2, design: .monospaced))
+                .foregroundColor(.secondary)
+        }
+        .padding(14)
+        .frame(width: 180, alignment: .leading)
+        .background(Color(uiColor: .systemBackground))
+        .cornerRadius(20)
+        .shadow(color: .black.opacity(0.08), radius: 6, y: 4)
+        .overlay(alignment: .topTrailing) {
+            HStack(spacing: 6) {
+                FavoriteShareButton {
+                    showShare = true
+                }
+                FavoriteStarButton(isFavorite: palette.isFavorite) {
+                    palette.isFavorite.toggle()
+                }
+            }
+            .padding(8)
+        }
+        .sheet(isPresented: $showShare) {
+            ShareSheet(items: [palette.shareSummary])
+        }
+    }
+}
+
+struct FavoriteGradientTile: View {
+    let gradient: SavedGradient
+    @State private var showShare = false
+
+    private var colors: [Color] {
+        let converted = gradient.colors.map { Color(uiColor: $0) }
+        return converted.isEmpty ? [Color.gray.opacity(0.6), Color.gray.opacity(0.2)] : converted
+    }
+
+    private var shareSummary: String {
+        let hexes = gradient.colors.map { $0.hexString }.joined(separator: ", ")
+        return "\(gradient.name): \(hexes)"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(LinearGradient(colors: colors,
+                                     startPoint: gradient.startPoint,
+                                     endPoint: gradient.endPoint))
+                .frame(height: 64)
+
+            Text(gradient.name)
+                .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+                .multilineTextAlignment(.leading)
+            Text("\(gradient.colors.count) swatches • \(gradient.timestamp.formatted(date: .abbreviated, time: .omitted))")
+                .font(.system(.caption2, design: .monospaced))
+                .foregroundColor(.secondary)
+        }
+        .padding(14)
+        .frame(width: 180, alignment: .leading)
+        .background(Color(uiColor: .systemBackground))
+        .cornerRadius(20)
+        .shadow(color: .black.opacity(0.08), radius: 6, y: 4)
+        .overlay(alignment: .topTrailing) {
+            HStack(spacing: 6) {
+                FavoriteShareButton {
+                    showShare = true
+                }
+                FavoriteStarButton(isFavorite: gradient.isFavorite) {
+                    gradient.isFavorite.toggle()
+                }
+            }
+            .padding(8)
+        }
+        .sheet(isPresented: $showShare) {
+            ShareSheet(items: [shareSummary])
+        }
+    }
+}
+
+struct FavoriteCardTile: View {
+    let card: SavedCard
+    @State private var showShare = false
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            if let img = card.uiImage {
+                Image(uiImage: img)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 160, height: 120)
+                    .clipped()
+                    .cornerRadius(20)
+            } else {
+                Color.gray.opacity(0.2)
+                    .frame(width: 160, height: 120)
+                    .cornerRadius(20)
+            }
+
+            HStack(spacing: 6) {
+                FavoriteShareButton {
+                    showShare = true
+                }
+                FavoriteStarButton(isFavorite: card.isFavorite) {
+                    card.isFavorite.toggle()
+                }
+            }
+            .padding(8)
+        }
+        .shadow(color: .black.opacity(0.08), radius: 6, y: 4)
+        .sheet(isPresented: $showShare) {
+            if let image = card.uiImage {
+                ShareSheet(items: [image])
+            } else {
+                ShareSheet(items: ["Ambit card exported \(card.timestamp.formatted(date: .abbreviated, time: .shortened))"])
+            }
         }
     }
 }
@@ -5857,271 +7377,6 @@ struct PaletteDetailView: View {
 }
 
 // MARK: - Card Creator
-
-struct CardDesignOptions: Equatable {
-    var aspect: CardAspect = .threeFour
-    var title: String = ""
-    var subtitle: String = ""
-    var paletteLayout: PaletteLayout = .strip
-
-    var titleSize: CGFloat = 24
-    var titleWeight: Font.Weight = .bold
-    var titleAlignment: TextAlignment = .center
-    var subtitleSize: CGFloat = 14
-    var subtitleWeight: Font.Weight = .regular
-    var subtitleAlignment: TextAlignment = .center
-
-    var frameStyle: FrameStyle = .rounded
-    var cornerRadius: CGFloat = 20
-    var borderWidth: CGFloat = 2
-    var borderColor: Color = .primary.opacity(0.2)
-
-    var shadowEnabled: Bool = true
-    var shadowRadius: CGFloat = 8
-    var shadowX: CGFloat = 0
-    var shadowY: CGFloat = 4
-
-    var backgroundMode: BackgroundMode = .solid
-    var backgroundColor1: Color = .white
-    var backgroundColor2: Color = .gray.opacity(0.15)
-    var imageOverlayOpacity: Double = 0.0
-
-    var includeImage: Bool = true
-    var imageCornerRadius: CGFloat = 16
-    var imageHeightRatio: CGFloat = 0.45
-}
-
-extension CardDesignOptions {
-    static func == (lhs: CardDesignOptions, rhs: CardDesignOptions) -> Bool {
-        lhs.aspect == rhs.aspect &&
-        lhs.title == rhs.title &&
-        lhs.subtitle == rhs.subtitle &&
-        lhs.paletteLayout == rhs.paletteLayout &&
-        lhs.titleSize == rhs.titleSize &&
-        lhs.titleWeight == rhs.titleWeight &&
-        lhs.titleAlignment == rhs.titleAlignment &&
-        lhs.subtitleSize == rhs.subtitleSize &&
-        lhs.subtitleWeight == rhs.subtitleWeight &&
-        lhs.subtitleAlignment == rhs.subtitleAlignment &&
-        lhs.frameStyle == rhs.frameStyle &&
-        lhs.cornerRadius == rhs.cornerRadius &&
-        lhs.borderWidth == rhs.borderWidth &&
-        colorsEqual(lhs.borderColor, rhs.borderColor) &&
-        lhs.shadowEnabled == rhs.shadowEnabled &&
-        lhs.shadowRadius == rhs.shadowRadius &&
-        lhs.shadowX == rhs.shadowX &&
-        lhs.shadowY == rhs.shadowY &&
-        lhs.backgroundMode == rhs.backgroundMode &&
-        colorsEqual(lhs.backgroundColor1, rhs.backgroundColor1) &&
-        colorsEqual(lhs.backgroundColor2, rhs.backgroundColor2) &&
-        lhs.imageOverlayOpacity == rhs.imageOverlayOpacity &&
-        lhs.includeImage == rhs.includeImage &&
-        lhs.imageCornerRadius == rhs.imageCornerRadius &&
-        lhs.imageHeightRatio == rhs.imageHeightRatio
-    }
-
-    private static func colorsEqual(_ lhs: Color, _ rhs: Color) -> Bool {
-        UIColor(lhs).isEqual(UIColor(rhs))
-    }
-
-    static func preset(_ preset: PresetTemplate, currentImage: Bool) -> CardDesignOptions {
-        var d = CardDesignOptions()
-        switch preset {
-        case .defaultMinimal:
-            break
-        case .posterA:
-            d.aspect = .fourFive
-            d.backgroundMode = .gradient
-            d.backgroundColor1 = .black
-            d.backgroundColor2 = .purple.opacity(0.4)
-            d.titleSize = 30
-            d.titleWeight = .heavy
-            d.titleAlignment = .leading
-            d.subtitleAlignment = .leading
-            d.frameStyle = .rounded
-            d.cornerRadius = 24
-            d.borderWidth = 0
-            d.shadowEnabled = true
-            d.paletteLayout = .strip
-            d.includeImage = currentImage
-            d.imageHeightRatio = 0.52
-        case .magazine:
-            d.aspect = .threeFour
-            d.backgroundMode = .solid
-            d.backgroundColor1 = Color(uiColor: .systemGroupedBackground)
-            d.titleSize = 28
-            d.titleWeight = .black
-            d.titleAlignment = .center
-            d.subtitleAlignment = .center
-            d.frameStyle = .polaroid
-            d.cornerRadius = 12
-            d.borderWidth = 1.5
-            d.borderColor = .primary.opacity(0.15)
-            d.shadowEnabled = false
-            d.paletteLayout = .grid
-            d.includeImage = currentImage
-            d.imageHeightRatio = 0.4
-        case .minimalTag:
-            d.aspect = .square
-            d.backgroundMode = .solid
-            d.backgroundColor1 = .white
-            d.titleSize = 22
-            d.titleWeight = .bold
-            d.titleAlignment = .center
-            d.subtitleAlignment = .center
-            d.frameStyle = .none
-            d.cornerRadius = 16
-            d.borderWidth = 0
-            d.shadowEnabled = true
-            d.shadowRadius = 6
-            d.paletteLayout = .chips
-            d.includeImage = currentImage
-            d.imageHeightRatio = 0.35
-        case .elegant:
-            d.aspect = .threeFour
-            d.backgroundMode = .gradient
-            d.backgroundColor1 = Color(uiColor: .systemIndigo)
-            d.backgroundColor2 = Color(uiColor: .systemPurple).opacity(0.6)
-            d.titleSize = 26
-            d.titleWeight = .semibold
-            d.titleAlignment = .center
-            d.subtitleAlignment = .center
-            d.frameStyle = .rounded
-            d.cornerRadius = 30
-            d.borderWidth = 1.2
-            d.borderColor = .white.opacity(0.3)
-            d.shadowEnabled = true
-            d.shadowRadius = 12
-            d.shadowY = 8
-            d.paletteLayout = .strip
-            d.includeImage = currentImage
-            d.imageHeightRatio = 0.42
-        case .bold:
-            d.aspect = .fourFive
-            d.backgroundMode = .gradient
-            d.backgroundColor1 = .red
-            d.backgroundColor2 = .orange.opacity(0.8)
-            d.titleSize = 34
-            d.titleWeight = .black
-            d.titleAlignment = .leading
-            d.subtitleAlignment = .leading
-            d.frameStyle = .rounded
-            d.cornerRadius = 20
-            d.borderWidth = 0
-            d.shadowEnabled = true
-            d.shadowRadius = 14
-            d.shadowY = 10
-            d.paletteLayout = .strip
-            d.includeImage = currentImage
-            d.imageHeightRatio = 0.5
-        case .minimalist:
-            d.aspect = .square
-            d.backgroundMode = .solid
-            d.backgroundColor1 = Color(uiColor: .secondarySystemBackground)
-            d.titleSize = 24
-            d.titleWeight = .medium
-            d.titleAlignment = .leading
-            d.subtitleAlignment = .leading
-            d.frameStyle = .none
-            d.cornerRadius = 18
-            d.borderWidth = 0
-            d.shadowEnabled = false
-            d.paletteLayout = .grid
-            d.includeImage = currentImage
-            d.imageHeightRatio = 0.38
-        case .vintage:
-            d.aspect = .threeFour
-            d.backgroundMode = .gradient
-            d.backgroundColor1 = Color(red: 0.58, green: 0.42, blue: 0.35)
-            d.backgroundColor2 = Color(red: 0.83, green: 0.72, blue: 0.60)
-            d.titleSize = 28
-            d.titleWeight = .semibold
-            d.titleAlignment = .center
-            d.subtitleAlignment = .center
-            d.frameStyle = .polaroid
-            d.cornerRadius = 18
-            d.borderWidth = 2
-            d.borderColor = Color.white.opacity(0.6)
-            d.shadowEnabled = true
-            d.shadowRadius = 10
-            d.shadowY = 6
-            d.paletteLayout = .chips
-            d.includeImage = currentImage
-            d.imageHeightRatio = 0.47
-        case .modern:
-            d.aspect = .nineSixteen
-            d.backgroundMode = .gradient
-            d.backgroundColor1 = Color(uiColor: .systemTeal)
-            d.backgroundColor2 = Color(uiColor: .systemBlue)
-            d.titleSize = 32
-            d.titleWeight = .heavy
-            d.titleAlignment = .leading
-            d.subtitleAlignment = .leading
-            d.frameStyle = .rounded
-            d.cornerRadius = 30
-            d.borderWidth = 0
-            d.shadowEnabled = true
-            d.shadowRadius = 18
-            d.shadowY = 12
-            d.paletteLayout = .strip
-            d.includeImage = currentImage
-            d.imageHeightRatio = 0.55
-        case .nature:
-            d.aspect = .fourFive
-            d.backgroundMode = .gradient
-            d.backgroundColor1 = Color(red: 0.18, green: 0.32, blue: 0.24)
-            d.backgroundColor2 = Color(red: 0.52, green: 0.72, blue: 0.48)
-            d.titleSize = 26
-            d.titleWeight = .bold
-            d.titleAlignment = .leading
-            d.subtitleAlignment = .leading
-            d.frameStyle = .rounded
-            d.cornerRadius = 24
-            d.borderWidth = 0
-            d.shadowEnabled = true
-            d.shadowRadius = 10
-            d.shadowY = 6
-            d.paletteLayout = .grid
-            d.includeImage = currentImage
-            d.imageHeightRatio = 0.48
-        case .corporate:
-            d.aspect = .threeFour
-            d.backgroundMode = .solid
-            d.backgroundColor1 = Color(uiColor: .systemGray6)
-            d.titleSize = 24
-            d.titleWeight = .semibold
-            d.titleAlignment = .leading
-            d.subtitleAlignment = .leading
-            d.frameStyle = .rounded
-            d.cornerRadius = 16
-            d.borderWidth = 1
-            d.borderColor = Color(uiColor: .systemGray3)
-            d.shadowEnabled = false
-            d.paletteLayout = .strip
-            d.includeImage = currentImage
-            d.imageHeightRatio = 0.4
-        case .playful:
-            d.aspect = .square
-            d.backgroundMode = .gradient
-            d.backgroundColor1 = .pink
-            d.backgroundColor2 = .yellow
-            d.titleSize = 30
-            d.titleWeight = .bold
-            d.titleAlignment = .center
-            d.subtitleAlignment = .center
-            d.frameStyle = .rounded
-            d.cornerRadius = 28
-            d.borderWidth = 0
-            d.shadowEnabled = true
-            d.shadowRadius = 12
-            d.shadowY = 8
-            d.paletteLayout = .chips
-            d.includeImage = currentImage
-            d.imageHeightRatio = 0.45
-        }
-        return d
-    }
-}
 
 struct CardCreatorView: View {
     @Environment(\.modelContext) private var modelContext
@@ -6268,10 +7523,9 @@ struct CardCreatorView: View {
                     .padding(.horizontal, 20)
                 }
                 .padding(.top, 28)
-                .padding(.bottom, 160)
+                .padding(.bottom, 32)
             }
             .scrollIndicators(.hidden)
-            .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     AppNavTitle(text: "Create Card", size: 26, weight: .bold)
@@ -6753,677 +8007,476 @@ struct CardCreatorView: View {
     }
 }
 
-struct CardCreatorSection<Content: View, Trailing: View>: View {
-    let title: String
-    let icon: String
-    let subtitle: String?
-    let accent: Color
-    private let trailingView: Trailing
-    private let contentView: Content
-
-    init(title: String, icon: String, subtitle: String? = nil, accent: Color = .accentColor,
-         @ViewBuilder trailing: () -> Trailing,
-         @ViewBuilder content: () -> Content) {
-        self.title = title
-        self.icon = icon
-        self.subtitle = subtitle
-        self.accent = accent
-        self.trailingView = trailing()
-        self.contentView = content()
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack(alignment: .center, spacing: 14) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(accent.opacity(0.14))
-                        .frame(width: 44, height: 44)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(accent.opacity(0.2), lineWidth: 1)
-                        )
-                    Image(systemName: icon)
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(accent)
-                }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.system(.title3, design: .monospaced, weight: .bold))
-                        .foregroundStyle(.primary)
-                    if let subtitle {
-                        Text(subtitle)
-                            .font(.system(.callout, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-
-                Spacer(minLength: 0)
-                trailingView
-            }
-
-            Rectangle()
-                .fill(accent.opacity(0.1))
-                .frame(height: 1)
-
-            contentView
-        }
-        .padding(24)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .fill(Color(uiColor: .systemBackground).opacity(0.96))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .stroke(accent.opacity(0.08), lineWidth: 1)
-        )
-        .shadow(color: .black.opacity(0.05), radius: 12, x: 0, y: 6)
-    }
+private enum OnboardingPhase: Hashable {
+    case marketing
+    case tutorial
+    case paywall
 }
-
-extension CardCreatorSection where Trailing == EmptyView {
-    init(title: String, icon: String, subtitle: String? = nil, accent: Color = .accentColor,
-         @ViewBuilder content: () -> Content) {
-        self.init(title: title, icon: icon, subtitle: subtitle, accent: accent, trailing: { EmptyView() }, content: content)
-    }
-}
-
-struct CardCreatorStatusChip: View {
-    let text: String
-
-    var body: some View {
-        Text(text)
-            .font(.system(.caption, design: .monospaced, weight: .medium))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(Color(uiColor: .secondarySystemGroupedBackground))
-            .foregroundStyle(.primary.opacity(0.8))
-            .cornerRadius(16)
-    }
-}
-
-private func typographyRow(weight: Binding<Font.Weight>, alignment: Binding<TextAlignment>, label: String, currentLabel: String) -> some View {
-    HStack(spacing: 12) {
-        Menu {
-            ForEach(fontWeights, id: \.self) { weightValue in
-                Button(weightLabel(weightValue)) { weight.wrappedValue = weightValue }
-            }
-        } label: {
-            Label("\(currentLabel): \(weightLabel(weight.wrappedValue))", systemImage: "textformat")
-        }
-
-        Spacer(minLength: 0)
-
-        SegmentedAlignmentPicker(selection: alignment, label: label)
-    }
-}
-
-struct CardCreatorTemplateCard: View {
-    let template: PresetTemplate
-    let isSelected: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            ZStack(alignment: .topLeading) {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(template.previewGradient)
-                    .frame(height: 120)
-                    .overlay(alignment: .bottomLeading) {
-                        HStack(spacing: 6) {
-                            ForEach(Array(template.previewColors.enumerated()), id: \.offset) { _, color in
-                                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                    .fill(color)
-                                    .frame(width: 24, height: 24)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                            .stroke(Color.white.opacity(0.4), lineWidth: 0.7)
-                                    )
-                            }
-                        }
-                        .padding(12)
-                    }
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .stroke(Color.white.opacity(isSelected ? 0.35 : 0.12), lineWidth: isSelected ? 2 : 1)
-                    )
-
-                Image(systemName: template.iconName)
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.85))
-                    .padding(12)
-            }
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text(template.displayName)
-                    .font(.system(.headline, design: .monospaced))
-                    .fontWeight(.semibold)
-                Text(template.tagline)
-                    .font(.system(.caption, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color(uiColor: .tertiarySystemGroupedBackground))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(isSelected ? Color.accentColor.opacity(0.85) : Color.white.opacity(0.07), lineWidth: isSelected ? 2.5 : 1)
-        )
-        .shadow(color: .black.opacity(isSelected ? 0.16 : 0.06), radius: isSelected ? 10 : 6, y: isSelected ? 6 : 2)
-        .scaleEffect(isSelected ? 1.02 : 1.0)
-        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: isSelected)
-    }
-}
-
-fileprivate extension PresetTemplate {
-    var displayName: String { rawValue }
-
-    var tagline: String {
-        switch self {
-        case .defaultMinimal:
-            return "Balanced type with a centered palette ribbon."
-        case .posterA:
-            return "Hero-first stack that feels like an event poster."
-        case .magazine:
-            return "Editorial split that loves layered imagery."
-        case .minimalTag:
-            return "Compact tag accent with floating swatches."
-        case .elegant:
-            return "Soft gradients and luxe negative space."
-        case .bold:
-            return "High-contrast slabs built to shout."
-        case .minimalist:
-            return "Ultra-clean geometry with disciplined spacing."
-        case .vintage:
-            return "Muted film tones with tactile framing."
-        case .modern:
-            return "Layered panels for product-forward stories."
-        case .nature:
-            return "Organic rhythm tuned for earthy visuals."
-        case .corporate:
-            return "Structured grid for decks and recaps."
-        case .playful:
-            return "Rounded chips and buoyant color hits."
-        }
-    }
-
-    var iconName: String {
-        switch self {
-        case .defaultMinimal:
-            return "sparkles"
-        case .posterA:
-            return "rectangle.portrait.on.rectangle.portrait"
-        case .magazine:
-            return "text.book.closed"
-        case .minimalTag:
-            return "tag.fill"
-        case .elegant:
-            return "rosette"
-        case .bold:
-            return "bolt.fill"
-        case .minimalist:
-            return "square.grid.2x2"
-        case .vintage:
-            return "camera.fill"
-        case .modern:
-            return "squareshape.split.2x2"
-        case .nature:
-            return "leaf.fill"
-        case .corporate:
-            return "building.2.fill"
-        case .playful:
-            return "face.smiling.fill"
-        }
-    }
-
-    var previewColors: [Color] {
-        switch self {
-        case .defaultMinimal:
-            return [Color(hex: "#0A84FF") ?? .blue, Color(hex: "#1C1C1E") ?? .black, Color(hex: "#F2F2F7") ?? .white]
-        case .posterA:
-            return [Color(hex: "#FF453A") ?? .red, Color(hex: "#1D1D1F") ?? .black, Color(hex: "#FFD60A") ?? .yellow]
-        case .magazine:
-            return [Color(hex: "#1F2937") ?? .black, Color(hex: "#38BDF8") ?? .cyan, Color(hex: "#F8FAFC") ?? .white]
-        case .minimalTag:
-            return [Color(hex: "#0A84FF") ?? .blue, Color(hex: "#34C759") ?? .green, Color(hex: "#F2F2F7") ?? .white]
-        case .elegant:
-            return [Color(hex: "#B48CF2") ?? .purple, Color(hex: "#F7E8FF") ?? .pink, Color(hex: "#4C1D95") ?? .indigo]
-        case .bold:
-            return [Color(hex: "#FF3B30") ?? .red, Color(hex: "#1C1C1E") ?? .black, Color(hex: "#FFD60A") ?? .yellow]
-        case .minimalist:
-            return [Color(hex: "#F5F5F7") ?? .white, Color(hex: "#D4D4D8") ?? .gray, Color(hex: "#0F172A") ?? .black]
-        case .vintage:
-            return [Color(hex: "#7C5C45") ?? .brown, Color(hex: "#F2DEC9") ?? .orange, Color(hex: "#4A3F35") ?? .brown]
-        case .modern:
-            return [Color(hex: "#111827") ?? .black, Color(hex: "#2563EB") ?? .blue, Color(hex: "#38BDF8") ?? .cyan]
-        case .nature:
-            return [Color(hex: "#14532D") ?? .green, Color(hex: "#22C55E") ?? .green, Color(hex: "#F2FCE8") ?? .green]
-        case .corporate:
-            return [Color(hex: "#0F172A") ?? .black, Color(hex: "#1D4ED8") ?? .blue, Color(hex: "#F8FAFC") ?? .white]
-        case .playful:
-            return [Color(hex: "#F97316") ?? .orange, Color(hex: "#FEC6CE") ?? .pink, Color(hex: "#8B5CF6") ?? .purple]
-        }
-    }
-
-    var previewGradient: LinearGradient {
-        let colors = previewColors
-        if colors.count == 1 {
-            return LinearGradient(colors: [colors[0], colors[0]], startPoint: .topLeading, endPoint: .bottomTrailing)
-        }
-        return LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
-    }
-}
-
-struct CardCreatorPaletteView: View {
-    @Binding var colors: [UIColor]
-
-    var body: some View {
-        if colors.isEmpty {
-            Text("Your palette is empty. Add a custom color or restore the extracted palette.")
-                .font(.system(.callout, design: .monospaced))
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        } else {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 12)], spacing: 12) {
-                ForEach(Array(colors.enumerated()), id: \.offset) { index, uiColor in
-                    paletteCard(for: uiColor, index: index)
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func paletteCard(for uiColor: UIColor, index: Int) -> some View {
-        let swiftColor = Color(uiColor: uiColor)
-        HStack(spacing: 12) {
-            Circle()
-                .fill(swiftColor)
-                .frame(width: 42, height: 42)
-                .overlay(Circle().stroke(Color.white.opacity(0.25), lineWidth: 1))
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Color \(index + 1)")
-                    .font(.system(.subheadline, design: .monospaced))
-                    .fontWeight(.semibold)
-                Text(uiColor.hexString.uppercased())
-                    .font(.system(.caption, design: .monospaced))
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            Image(systemName: "ellipsis")
-                .font(.system(size: 16, weight: .bold))
-                .foregroundStyle(.secondary)
-        }
-        .padding(14)
-        .background(Color(uiColor: .tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .contextMenu {
-            Button("Copy HEX", systemImage: "doc.on.doc") {
-                UIPasteboard.general.string = uiColor.hexString
-            }
-            if colors.count > 1 {
-                Button(role: .destructive) {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        colors.remove(atOffsets: IndexSet(integer: index))
-                    }
-                } label: {
-                    Label("Remove", systemImage: "trash")
-                }
-            }
-        }
-    }
-}
-
-struct CapsuleTag: View {
-    let text: String
-    let icon: String
-
-    var body: some View {
-        Label(text, systemImage: icon)
-            .font(.system(.caption, design: .monospaced))
-            .fontWeight(.semibold)
-            .padding(.vertical, 6)
-            .padding(.horizontal, 12)
-            .background(.ultraThinMaterial, in: Capsule())
-    }
-}
-
-struct AdvancedPaletteCardView: View {
-    let image: UIImage?
-    let colors: [UIColor]
-    let design: CardDesignOptions
-
-    var body: some View {
-        ZStack {
-            backgroundView
-            cardBody.padding(16)
-        }
-    }
-
-    @ViewBuilder
-    private var backgroundView: some View {
-        switch design.backgroundMode {
-        case .solid:
-            design.backgroundColor1
-        case .gradient:
-            LinearGradient(colors: [design.backgroundColor1, design.backgroundColor2], startPoint: .topLeading, endPoint: .bottomTrailing)
-        case .image:
-            if let image {
-                Image(uiImage: image).resizable().scaledToFill().clipped()
-                    .overlay(Color.black.opacity(design.imageOverlayOpacity))
-            } else {
-                Color(uiColor: .systemGroupedBackground)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var cardBody: some View {
-        let base = VStack(spacing: 0) {
-            if !design.title.isEmpty || !design.subtitle.isEmpty {
-                VStack(spacing: 6) {
-                    if !design.title.isEmpty {
-                        Text(design.title)
-                            .font(.system(size: design.titleSize, weight: design.titleWeight, design: .monospaced)).italic()
-                            .multilineTextAlignment(design.titleAlignment)
-                            .minimumScaleFactor(0.8).lineLimit(2)
-                            .frame(maxWidth: .infinity, alignment: align(design.titleAlignment))
-                    }
-                    if !design.subtitle.isEmpty {
-                        Text(design.subtitle)
-                            .font(.system(size: design.subtitleSize, weight: design.subtitleWeight, design: .monospaced))
-                            .multilineTextAlignment(design.subtitleAlignment)
-                            .foregroundStyle(.secondary).lineLimit(2)
-                            .frame(maxWidth: .infinity, alignment: align(design.subtitleAlignment))
-                    }
-                }
-                .padding(.horizontal).padding(.top, 12)
-            }
-
-            if design.includeImage, let image {
-                Image(uiImage: image).resizable().scaledToFill()
-                    .clipShape(RoundedRectangle(cornerRadius: design.imageCornerRadius, style: .continuous))
-                    .padding(.horizontal, 12).padding(.vertical, 12)
-                    .heightRatio(design.imageHeightRatio)
-                    .clipped()
-            }
-
-            paletteBlock
-                .padding(.horizontal, 12)
-                .padding(.bottom, design.frameStyle == .polaroid ? 24 : 12)
-                .padding(.top, 12)
-        }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: design.frameStyle == .polaroid ? 12 : design.cornerRadius, style: .continuous)
-                .fill(Color(uiColor: .systemBackground))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: design.frameStyle == .polaroid ? 12 : design.cornerRadius, style: .continuous)
-                .stroke(design.frameStyle == .none ? .clear : design.borderColor, lineWidth: design.borderWidth)
-        )
-        .shadow(color: .black.opacity(design.shadowEnabled ? 0.2 : 0),
-                radius: design.shadowRadius, x: design.shadowX, y: design.shadowY)
-        .padding(design.frameStyle == .polaroid ? EdgeInsets(top: 12, leading: 12, bottom: 28, trailing: 12) : EdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 12))
-
-        if design.frameStyle == .polaroid {
-            VStack(spacing: 0) {
-                base
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color(uiColor: .systemBackground))
-                    .frame(height: 32)
-                    .overlay(
-                        Text(design.title.isEmpty ? "" : design.title)
-                            .font(.system(.subheadline, design: .monospaced)).italic()
-                            .foregroundColor(.secondary)
-                    )
-                    .padding(.horizontal, 12)
-            }
-        } else {
-            base
-        }
-    }
-
-    @ViewBuilder
-    private var paletteBlock: some View {
-        switch design.paletteLayout {
-        case .strip:
-            HStack(spacing: 0) {
-                ForEach(colors.indices, id: \.self) { i in Color(uiColor: colors[i]) }
-            }
-            .frame(height: 80)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-        case .grid:
-            let cols = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
-            LazyVGrid(columns: cols, spacing: 8) {
-                ForEach(colors.indices, id: \.self) { i in
-                    RoundedRectangle(cornerRadius: 8).fill(Color(uiColor: colors[i])).frame(height: 44)
-                }
-            }
-            .padding(8)
-            .background(.ultraThinMaterial)
-            .cornerRadius(12)
-        case .chips:
-            let cols = [GridItem(.adaptive(minimum: 120), spacing: 8)]
-            LazyVGrid(columns: cols, alignment: .leading, spacing: 8) {
-                ForEach(colors.indices, id: \.self) { i in
-                    HStack(spacing: 8) {
-                        Circle().fill(Color(uiColor: colors[i])).frame(width: 18, height: 18)
-                        Text(colors[i].toHex() ?? "")
-                            .font(.system(.caption, design: .monospaced))
-                    }
-                    .padding(.horizontal, 10).padding(.vertical, 6)
-                    .background(.ultraThinMaterial).cornerRadius(18)
-                }
-            }
-            .padding(6)
-        }
-    }
-
-    private func align(_ t: TextAlignment) -> Alignment {
-        switch t { case .leading: return .leading; case .center: return .center; case .trailing: return .trailing }
-    }
-}
-
-struct HeightRatioModifier: ViewModifier {
-    let ratio: CGFloat
-    func body(content: Content) -> some View {
-        GeometryReader { geo in
-            content.frame(height: max(1, geo.size.width * ratio))
-        }
-    }
-}
-extension View { func heightRatio(_ ratio: CGFloat) -> some View { modifier(HeightRatioModifier(ratio: ratio)) } }
-
-let fontWeights: [Font.Weight] = [.ultraLight, .thin, .light, .regular, .medium, .semibold, .bold, .heavy, .black]
-func weightLabel(_ w: Font.Weight) -> String {
-    switch w {
-    case .ultraLight: return "UltraLight"
-    case .thin: return "Thin"
-    case .light: return "Light"
-    case .regular: return "Regular"
-    case .medium: return "Medium"
-    case .semibold: return "SemiBold"
-    case .bold: return "Bold"
-    case .heavy: return "Heavy"
-    case .black: return "Black"
-    default: return "Regular"
-    }
-}
-
-struct SegmentedAlignmentPicker: View {
-    @Binding var selection: TextAlignment
-    var label: String = ""
-    var body: some View {
-        Picker(label, selection: $selection) {
-            Image(systemName: "text.alignleft").tag(TextAlignment.leading)
-            Image(systemName: "text.aligncenter").tag(TextAlignment.center)
-            Image(systemName: "text.alignright").tag(TextAlignment.trailing)
-        }
-        .pickerStyle(.segmented)
-        .frame(maxWidth: 240)
-    }
-}
-
-struct SliderWithLabel: View {
-    let title: String
-    @Binding var value: CGFloat
-    var range: ClosedRange<CGFloat>
-    var step: CGFloat = 0.01
-    var format: String = "%.0f"
-    var body: some View {
-        VStack(alignment: .leading) {
-            HStack {
-                Text(title)
-                Spacer()
-                Text(String(format: format, value as CVarArg)).foregroundStyle(.secondary)
-            }
-            Slider(value: $value, in: range, step: step)
-        }
-    }
-}
-
-// Double variant to avoid Binding<Double> -> Binding<CGFloat> error
-struct SliderWithLabelDouble: View {
-    let title: String
-    @Binding var value: Double
-    var range: ClosedRange<Double>
-    var step: Double = 0.01
-    var format: String = "%.0f"
-    var body: some View {
-        VStack(alignment: .leading) {
-            HStack {
-                Text(title)
-                Spacer()
-                Text(String(format: format, value as CVarArg)).foregroundStyle(.secondary)
-            }
-            Slider(value: $value, in: range, step: step)
-        }
-    }
-}
-
-// Palette reorder sheet
-struct ReorderPaletteView: View {
-    @Environment(\.dismiss) private var dismiss
-    @Binding var colors: [UIColor]
-    @State private var editMode: EditMode = .active
-    var body: some View {
-        NavigationStack {
-            List {
-                ForEach(Array(colors.enumerated()), id: \.offset) { _, color in
-                    HStack {
-                        Circle().fill(Color(uiColor: color)).frame(width: 20, height: 20)
-                        Text(color.toHex() ?? "#000000").font(.system(.body, design: .monospaced))
-                    }
-                }
-                .onMove { from, to in colors.move(fromOffsets: from, toOffset: to) }
-                .onDelete { idx in colors.remove(atOffsets: idx) }
-            }
-            .environment(\.editMode, $editMode)
-            .toolbar {
-                ToolbarItem(placement: .principal) { AppNavTitle(text: "Reorder Palette", size: 24, weight: .bold) }
-                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
-                ToolbarItem(placement: .cancellationAction) { EditButton() }
-            }
-        }
-    }
-}
-
-// MARK: - Onboarding
 
 struct OnboardingView: View {
     @Binding var hasCompletedOnboarding: Bool
-    @State private var tab = 0
+    @State private var phase: OnboardingPhase = .marketing
+    @State private var marketingIndex = 0
+    @State private var selectedPlan: PaywallPlan = .monthly
+
     var body: some View {
-        VStack {
-            TabView(selection: $tab) {
-                OnboardingSlideView(icon: "sparkles", title: "Welcome to Ambit.", subtitle: "The ultimate toolkit for color.", isPresented: tab == 0).tag(0)
-                OnboardingSlideView(icon: "photo.on.rectangle.angled", title: "Analyze Anything", subtitle: "Extract palettes from photos.", isPresented: tab == 1).tag(1)
-                OnboardingSlideView(icon: "wrench.and.screwdriver", title: "Powerful Tools", subtitle: "Generate palettes, extract from web, and more.", isPresented: tab == 2).tag(2)
-                OnboardingSlideView(icon: "square.grid.2x2.fill", title: "Build Your Library", subtitle: "Save palettes and export beautiful cards.", isPresented: tab == 3).tag(3)
+        ZStack {
+            switch phase {
+            case .marketing:
+                AnimatedOnboardingView(onContinue: {
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { phase = .paywall }
+                }, onStartTutorial: {
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { phase = .tutorial }
+                })
+
+            case .paywall:
+                PaywallView(selectedPlan: $selectedPlan) {
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
+                        phase = .tutorial
+                    }
+                }
+
+            case .tutorial:
+                InteractiveTutorialView(onFinish: {
+                    PermissionManager.requestPermissions {
+                        withAnimation(.easeInOut) { hasCompletedOnboarding = true }
+                    }
+                })
+            }
+        }
+        .transition(.opacity.combined(with: .move(edge: .bottom)))
+        .animation(.easeInOut, value: phase)
+        .background(Color(uiColor: .systemGroupedBackground))
+    }
+}
+
+private struct MarketingPager: View {
+    @Binding var index: Int
+    let onContinue: () -> Void
+
+    var body: some View {
+        VStack(spacing: 28) {
+            Spacer(minLength: 24)
+            TabView(selection: $index) {
+                ForEach(Array(MarketingSlide.slides.enumerated()), id: \.offset) { offset, slide in
+                    MarketingSlideView(slide: slide)
+                        .tag(offset)
+                        .padding(.horizontal, 24)
+                        .padding(.top, 12)
+                }
             }
             .tabViewStyle(.page(indexDisplayMode: .always))
-            Button(action: {
-                if tab == 3 {
-                    PermissionManager.requestPermissions { hasCompletedOnboarding = true }
-                } else { tab += 1 }
-            }) {
-                Text(tab == 3 ? "Get Started" : "Next")
-                    .font(.system(.body, design: .monospaced, weight: .bold))
-                    .padding().frame(maxWidth: .infinity)
-                    .background(Color.primary)
-                    .foregroundColor(Color(uiColor: .systemBackground))
-                    .cornerRadius(12)
-                    .padding()
+            .frame(maxHeight: 520)
+
+            PrimaryCTAButton(title: index == MarketingSlide.slides.count - 1 ? "View Membership Plans" : "Next") {
+                onContinue()
             }
+            .padding(.horizontal, 24)
+            Spacer(minLength: 36)
+        }
+        .background(
+            LinearGradient(colors: [Color.accentColor.opacity(0.08), Color.clear], startPoint: .topLeading, endPoint: .bottomTrailing)
+                .ignoresSafeArea()
+        )
+    }
+}
+
+private struct TutorialOverview: View {
+    let onFinish: () -> Void
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 28) {
+                VStack(spacing: 12) {
+                    Text("Welcome to Your Ambit Studio")
+                        .font(.system(.title2, design: .monospaced, weight: .bold))
+                        .italic()
+                    Text("Start every project grounded in analysis, strategy, and a library that never loses your work.")
+                        .font(.system(.subheadline, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 24)
+
+                VStack(alignment: .leading, spacing: 16) {
+                    ForEach(TutorialModel.steps) { step in
+                        TutorialCard(step: step)
+                    }
+                }
+                .padding(.horizontal, 20)
+
+                PrimaryCTAButton(title: "Finish Setup", action: onFinish)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 36)
+            }
+            .padding(.top, 44)
         }
     }
 }
 
-struct OnboardingSlideView: View {
-    let icon: String
-    let title: String
-    let subtitle: String
-    let isPresented: Bool
-    @State private var animate = false
+private struct PaywallView: View {
+    @Binding var selectedPlan: PaywallPlan
+    let onPurchase: () -> Void
+
     var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: icon)
-                .font(.system(size: 60))
-                .foregroundColor(.primary)
-                .scaleEffect(animate ? 1 : 0.5)
-                .opacity(animate ? 1 : 0)
+        ScrollView {
+            VStack(spacing: 28) {
+                VStack(spacing: 12) {
+                    Text("Unlock Ambit Pro")
+                        .font(.system(.largeTitle, design: .monospaced, weight: .bold))
+                        .italic()
+                        .multilineTextAlignment(.center)
+                    Text("Professional color intelligence for teams who ship at scale.")
+                        .font(.system(.subheadline, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
 
-            Text(title)
-                .font(.system(size: 40, weight: .bold, design: .monospaced)).italic()
+                VStack(spacing: 16) {
+                    ForEach(PaywallPlan.allCases) { plan in
+                        PaywallPlanCard(plan: plan, isSelected: selectedPlan == plan)
+                            .onTapGesture { withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) { selectedPlan = plan } }
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(PaywallBenefit.all) { benefit in
+                        HStack(alignment: .top, spacing: 12) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                            Text(benefit.text)
+                                .font(.system(.subheadline, design: .monospaced))
+                                .foregroundStyle(.primary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+
+                PrimaryCTAButton(title: selectedPlan.ctaTitle, action: onPurchase)
+
+                Button("Restore Purchases", action: { /* Hook into StoreKit restore */ })
+                    .font(.system(.footnote, design: .monospaced, weight: .medium))
+                    .foregroundStyle(.secondary)
+
+                Text("Payment will be charged to your Apple ID account. Cancel anytime in Settings. Lifetime access is a one-time purchase.")
+                    .font(.system(.footnote, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 36)
+        }
+    }
+}
+
+private struct MarketingSlideView: View {
+    let slide: MarketingSlide
+    @State private var animate = false
+
+    var body: some View {
+        VStack(spacing: 22) {
+            Image(systemName: slide.icon)
+                .font(.system(size: 60, weight: .bold))
+                .foregroundStyle(slide.tint)
+                .scaleEffect(animate ? 1 : 0.85)
+                .opacity(animate ? 1 : 0)
+            Text(slide.title)
+                .font(.system(.title, design: .monospaced, weight: .bold))
+                .italic()
                 .multilineTextAlignment(.center)
-                .scaleEffect(animate ? 1 : 0.9)
-                .opacity(animate ? 1 : 0)
-
-            Text(subtitle)
-                .font(.system(size: 17, weight: .regular, design: .monospaced))
+                .foregroundStyle(.primary)
+                .scaleEffect(animate ? 1 : 0.94)
+            Text(slide.subtitle)
+                .font(.system(.body, design: .monospaced))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal)
+                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(slide.highlights, id: \.self) { highlight in
+                    Label(highlight, systemImage: "sparkles")
+                        .labelStyle(.titleAndIcon)
+                        .font(.system(.footnote, design: .monospaced, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(18)
+            .background(Color(uiColor: .secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
 
             Spacer(minLength: 0)
         }
-        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .fill(Color(uiColor: .systemBackground).opacity(0.92))
+                .shadow(color: slide.tint.opacity(0.25), radius: 24, y: 14)
+        )
         .onAppear {
-            if isPresented {
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) { animate = true }
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.75)) {
+                animate = true
             }
-        }
-        .onChange(of: isPresented) { _, newValue in
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) { animate = newValue }
         }
     }
 }
 
-// MARK: - Settings
+private struct TutorialCard: View {
+    let step: TutorialModel
 
-struct SettingsView: View {
-    @AppStorage("numberOfColorsToExtract") private var numberOfColors: Int = 8
-    @AppStorage("avoidDarkColors") private var avoidDark: Bool = true
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("Extraction") {
-                    Stepper("Number of colors: \(numberOfColors)", value: $numberOfColors, in: 3...12)
-                    Toggle("Avoid dark colors", isOn: $avoidDark)
+        HStack(alignment: .top, spacing: 16) {
+            VStack(spacing: 6) {
+                Text(String(format: "%02d", step.order))
+                    .font(.system(.title3, design: .monospaced, weight: .bold))
+                Image(systemName: step.icon)
+                    .font(.system(size: 20, weight: .semibold))
+            }
+            .frame(width: 54)
+            .padding(10)
+            .background(step.tint.opacity(0.18))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(step.title)
+                    .font(.system(.headline, design: .monospaced, weight: .bold))
+                Text(step.detail)
+                    .font(.system(.callout, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(18)
+        .background(Color(uiColor: .systemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: step.tint.opacity(0.15), radius: 12, y: 6)
+    }
+}
+
+private struct PaywallPlanCard: View {
+    let plan: PaywallPlan
+    let isSelected: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text(plan.title)
+                    .font(.system(.headline, design: .monospaced, weight: .bold))
+                Spacer()
+                if plan.badge != nil {
+                    Text(plan.badge!)
+                        .font(.system(.caption2, design: .monospaced, weight: .heavy))
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, 8)
+                        .background(plan.tint.opacity(0.22))
+                        .clipShape(Capsule())
                 }
             }
-            .toolbar { ToolbarItem(placement: .principal) { AppNavTitle(text: "Settings", size: 24, weight: .bold) } }
+            Text(plan.priceDescription)
+                .font(.system(.title3, design: .monospaced, weight: .bold))
+            Text(plan.subtitle)
+                .font(.system(.footnote, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Divider()
+                .opacity(0.15)
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(plan.features, id: \.self) { feature in
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 12, weight: .bold))
+                        Text(feature)
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .fill(Color(uiColor: .systemBackground))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                        .stroke(isSelected ? plan.tint : Color.primary.opacity(0.08), lineWidth: isSelected ? 2 : 1)
+                )
+        )
+        .shadow(color: plan.tint.opacity(isSelected ? 0.25 : 0.08), radius: isSelected ? 24 : 12, y: 8)
+        .scaleEffect(isSelected ? 1.02 : 1)
+    }
+}
+
+private struct PrimaryCTAButton: View {
+    let title: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(.headline, design: .monospaced, weight: .bold))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(Color.primary)
+                .foregroundColor(Color(uiColor: .systemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct MarketingSlide: Identifiable {
+    let id = UUID()
+    let icon: String
+    let title: String
+    let subtitle: String
+    let highlights: [String]
+    let tint: Color
+
+    static let slides: [MarketingSlide] = [
+        MarketingSlide(
+            icon: "sparkles",
+            title: "Your Color Command Center",
+            subtitle: "Ambit unifies analysis, storytelling, and asset management in one workspace.",
+            highlights: [
+                "Instant WCAG AA / AAA scoring on every swatch",
+                "Strategy insights from 40+ benchmarked brands",
+                "Library that keeps palettes, gradients, and cards in sync"
+            ],
+            tint: .indigo
+        ),
+        MarketingSlide(
+            icon: "photo.on.rectangle.angled",
+            title: "Analyze Assets in Seconds",
+            subtitle: "Drop in photos, screenshots, or brand decks and generate usable palettes immediately.",
+            highlights: [
+                "Smart sampling preserves tonal balance",
+                "Contrast heatmaps flag risky pairings",
+                "Color-vision simulations ensure inclusive design"
+            ],
+            tint: .blue
+        ),
+        MarketingSlide(
+            icon: "square.grid.2x2.fill",
+            title: "Build Systems That Scale",
+            subtitle: "Link palettes, gradients, and story cards so every deliverable stays on-brand.",
+            highlights: [
+                "Generate gradients and motion ramps from any palette",
+                "Version history and duplication for rapid exploration",
+                "Guided accessibility cues baked into every workspace"
+            ],
+            tint: .purple
+        ),
+        MarketingSlide(
+            icon: "square.and.arrow.up",
+            title: "Share With Total Confidence",
+            subtitle: "Export production-ready kits and collaborate without leaving Ambit.",
+            highlights: [
+                "Figma, Adobe, and web exports in one tap",
+                "Branded presentation cards for stakeholder reviews",
+                "Team onboarding playbooks inside the Library hub"
+            ],
+            tint: .teal
+        )
+    ]
+}
+
+private struct TutorialModel: Identifiable {
+    let id = UUID()
+    let order: Int
+    let icon: String
+    let title: String
+    let detail: String
+    let tint: Color
+
+    static let steps: [TutorialModel] = [
+        TutorialModel(order: 1, icon: "photo.on.rectangle.angled", title: "Import & Analyze", detail: "Drag in photos, decks, or moodboards. Ambit extracts primary, support, and neutral tones with instant contrast checks.", tint: .orange),
+        TutorialModel(order: 2, icon: "eyedropper.halffull", title: "Refine with Precision", detail: "Tune swatches, lock winning combinations, and flag accessibility issues before anything ships.", tint: .pink),
+        TutorialModel(order: 3, icon: "paintpalette.fill", title: "Systemize Your Color", detail: "Spin up gradients, motion ramps, and story cards—all synced back to the same palette.", tint: .blue),
+        TutorialModel(order: 4, icon: "archivebox.fill", title: "Grow the Library", detail: "Every palette, gradient, and card lives in the Library hub so your team never loses a deliverable.", tint: .indigo),
+        TutorialModel(order: 5, icon: "square.and.arrow.up", title: "Share & Iterate", detail: "Export Figma, Adobe, and web kits in one tap, then version them right inside Ambit.", tint: .green)
+    ]
+}
+
+private enum PaywallPlan: String, CaseIterable, Identifiable {
+    case monthly
+    case lifetime
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .monthly: return "Ambit Monthly"
+        case .lifetime: return "Ambit Lifetime"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .monthly: return "Perfect for iterating with new palettes every month." 
+        case .lifetime: return "Own the full studio forever with all future updates." 
+        }
+    }
+
+    var priceDescription: String {
+        switch self {
+        case .monthly: return "$3.99 / month"
+        case .lifetime: return "$25 one-time"
+        }
+    }
+
+    var features: [String] {
+        switch self {
+        case .monthly:
+            return [
+                "Unlimited analyzer and library usage",
+                "Linked palettes, gradients, and story cards",
+                "Monthly brand library expansions"
+            ]
+        case .lifetime:
+            return [
+                "Everything in Ambit Monthly",
+                "Priority access to new generators",
+                "Lifetime updates and advanced playbooks"
+            ]
+        }
+    }
+
+    var badge: String? {
+        switch self {
+        case .monthly: return "Best start"
+        case .lifetime: return "Best value"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .monthly: return .blue
+        case .lifetime: return .purple
+        }
+    }
+
+    var ctaTitle: String {
+        switch self {
+        case .monthly: return "Subscribe for $3.99 / month"
+        case .lifetime: return "Unlock Lifetime for $25"
         }
     }
 }
 
-// MARK: - Utilities and Helpers
+private struct PaywallBenefit: Identifiable {
+    let id = UUID()
+    let text: String
+
+    static let all: [PaywallBenefit] = [
+        PaywallBenefit(text: "Unlimited analyzer sessions and library storage"),
+        PaywallBenefit(text: "Accessibility dashboards with WCAG scoring"),
+        PaywallBenefit(text: "Export-ready files for Figma, Adobe, and web"),
+        PaywallBenefit(text: "Monthly brand drops and strategy playbooks")
+    ]
+}
 
 struct LoadingView: View {
     var body: some View {
@@ -7444,10 +8497,108 @@ struct PlaceholderView: View {
     }
 }
 
-struct ShareSheet: UIViewControllerRepresentable {
-    let items: [Any]
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: items, applicationActivities: nil)
+struct ScrollableTabBar: View {
+    @Binding var selectedTab: RootTab
+    @Environment(\.ambitAccentColor) private var accentColor
+    @Environment(\.ambitTheme) private var theme
+    
+    private let tabs: [RootTab] = [.analyzer, .palettes, .gradients, .cards, .learning, .library, .settings]
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Top separator line
+            Rectangle()
+                .fill(Color.primary.opacity(0.1))
+                .frame(height: 0.5)
+
+            // Tab buttons in scrollable view
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(tabs, id: \.self) { tab in
+                        TabButton(
+                            tab: tab,
+                            selectedTab: selectedTab,
+                            accentColor: accentColor
+                        ) {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                selectedTab = tab
+                            }
+                            HapticManager.instance.impact(style: .light)
+                        }
+                    }
+                }
+                .padding(.horizontal, 12)
+            }
+            .frame(height: 65)
+        }
+        .background(.ultraThinMaterial)
+        .background(theme.cardBackgroundColor.opacity(0.5))
     }
-    func updateUIViewController(_ vc: UIActivityViewController, context: Context) {}
 }
+
+struct TabButton: View {
+    let tab: RootTab
+    let selectedTab: RootTab
+    let accentColor: Color
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 2) {
+                Image(systemName: tab.icon)
+                    .font(.system(size: 16, weight: .medium))
+                    .symbolRenderingMode(.hierarchical)
+                
+                Text(tab.label)
+                    .font(.system(size: 10, weight: .medium))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.4)
+                    .truncationMode(.middle)
+                    .allowsTightening(true)
+            }
+            .foregroundColor(selectedTab == tab ? accentColor : .secondary)
+            .frame(width: 88, height: 55)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(selectedTab == tab ? accentColor.opacity(0.12) : Color.clear)
+            .animation(.easeInOut(duration: 0.15), value: selectedTab == tab)
+        )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// File-scope extensions consolidated
+extension PaletteStyle: CaseIterable {
+    static let allCases: [PaletteStyle] = [.adaptive, .harmonic, .monochromatic, .complementary, .triadic, .analogous]
+
+    var displayName: String { rawValue }
+}
+
+extension PalettePurpose: CaseIterable {
+    static let allCases: [PalettePurpose] = [.ui, .branding, .artistic, .accessible]
+
+    var displayName: String {
+        switch self {
+        case .ui: return "UI"
+        case .branding: return "Branding"
+        case .artistic: return "Artistic"
+        case .accessible: return "Accessible"
+        }
+    }
+
+    var guidance: String {
+        switch self {
+        case .ui:
+            return "Balances contrast and interaction states for multi-state UI surfaces."
+        case .branding:
+            return "Highlights hero tones while keeping supportive colors distinct and consistent."
+        case .artistic:
+            return "Allows expressive saturation shifts and cinematic range for storytelling visuals."
+        case .accessible:
+            return "Maximizes contrast ratios and legibility for WCAG-compliant experiences."
+        }
+    }
+}
+
+

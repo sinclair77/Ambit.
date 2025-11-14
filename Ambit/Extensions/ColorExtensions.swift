@@ -248,8 +248,8 @@ extension UIColor {
 // MARK: - SwiftUI Color Extensions
 
 extension Color {
-    func toHex(includeAlpha: Bool = false) -> String? {
-        UIColor(self).toHex(includeAlpha: includeAlpha)
+    func toHex(includeAlpha: Bool = false) -> String {
+        UIColor(self).toHex(includeAlpha: includeAlpha) ?? "#000000"
     }
 
     func toRGBString() -> String {

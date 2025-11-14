@@ -1,0 +1,5 @@
+ - [x] Review existing iCloud sync keys and merging logic in `ContentView.swift`
+ - [x] Design serialization payloads for saved palettes, cards, gradients
+ - [x] Update save/delete flows to push changes through `UbiquitousSyncManager`
+ - [x] Implement pull/merge logic to hydrate SwiftData stores from iCloud changes
+ - [x] Verify no duplicate entries and ensure timestamps remain accurate after sync

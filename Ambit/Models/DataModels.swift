@@ -11,17 +11,21 @@ import SwiftUI
 
 @Model
 final class SavedPalette {
+    @Attribute(.unique) var syncIdentifier: String
     var name: String
     var imageData: Data?
     @Attribute(.transformable(by: ColorArrayTransformer.self))
     var colors: [UIColor]
     var timestamp: Date
+    var isFavorite: Bool = false
 
-    init(name: String, image: UIImage? = nil, colors: [UIColor]) {
+    init(name: String, image: UIImage? = nil, colors: [UIColor], syncIdentifier: String = UUID().uuidString, timestamp: Date = Date(), isFavorite: Bool = false) {
+        self.syncIdentifier = syncIdentifier
         self.name = name
         self.imageData = image?.jpegData(compressionQuality: 0.8)
         self.colors = colors
-        self.timestamp = Date()
+        self.timestamp = timestamp
+        self.isFavorite = isFavorite
     }
 
     var uiImage: UIImage? {
@@ -32,16 +36,28 @@ final class SavedPalette {
     var uiColors: [UIColor] {
         colors
     }
+
+    var hexCodes: [String] {
+        uiColors.map { $0.hexString }
+    }
+
+    var shareSummary: String {
+        hexCodes.joined(separator: ", ")
+    }
 }
 
 @Model
 final class SavedCard {
+    @Attribute(.unique) var syncIdentifier: String
     var imageData: Data
     var timestamp: Date
+    var isFavorite: Bool = false
 
-    init(imageData: Data) {
+    init(imageData: Data, syncIdentifier: String = UUID().uuidString, timestamp: Date = Date(), isFavorite: Bool = false) {
+        self.syncIdentifier = syncIdentifier
         self.imageData = imageData
-        self.timestamp = Date()
+        self.timestamp = timestamp
+        self.isFavorite = isFavorite
     }
 
     var uiImage: UIImage? {
@@ -51,6 +67,7 @@ final class SavedCard {
 
 @Model
 final class SavedGradient {
+    @Attribute(.unique) var syncIdentifier: String
     var name: String
     @Attribute(.transformable(by: ColorArrayTransformer.self))
     var colors: [UIColor]
@@ -62,8 +79,10 @@ final class SavedGradient {
     var style: String = "linear"
     var angle: Double = 0
     var timestamp: Date
+    var isFavorite: Bool = false
 
-    init(name: String, colors: [UIColor], locations: [CGFloat], startPoint: UnitPoint, endPoint: UnitPoint, style: String = "linear", angle: Double = 0) {
+    init(name: String, colors: [UIColor], locations: [CGFloat], startPoint: UnitPoint, endPoint: UnitPoint, style: String = "linear", angle: Double = 0, syncIdentifier: String = UUID().uuidString, timestamp: Date = Date(), isFavorite: Bool = false) {
+        self.syncIdentifier = syncIdentifier
         self.name = name
         self.colors = colors
         self.locations = locations
@@ -71,7 +90,8 @@ final class SavedGradient {
         self.endPoint = endPoint
         self.style = style
         self.angle = angle
-        self.timestamp = Date()
+        self.timestamp = timestamp
+        self.isFavorite = isFavorite
     }
 }
 
