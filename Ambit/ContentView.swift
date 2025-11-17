@@ -5363,14 +5363,14 @@ struct ImageWorkspace: View {
                     Spacer(minLength: 20)
                     
                     ZStack {
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .fill(Color(.systemBackground).opacity(0.92))
-                            .shadow(radius: 10, y: 5)
-                        Image(uiImage: image)
-                            .resizable()
-                            .aspectRatio(image.size, contentMode: .fit)
-                            .frame(width: metrics.displaySize.width, height: metrics.displaySize.height)
-                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                    .fill(Color(.systemBackground).opacity(0.92))
+                                    .shadow(radius: 10, y: 5)
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: metrics.displaySize.width, height: metrics.displaySize.height)
+                                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                     }
                     .frame(width: metrics.containerSize.width, height: metrics.containerSize.height)
                     .contentShape(Rectangle())
@@ -5417,8 +5417,8 @@ struct ImageWorkspace: View {
 
     private func displayMetrics(for geometry: GeometryProxy) -> ImageDisplayMetrics {
         let containerSize = CGSize(
-            width: min(geometry.size.width - 40, 500),
-            height: min(geometry.size.height * 0.7, 500)
+            width: geometry.size.width - 40,
+            height: geometry.size.height * 0.66
         )
         let imageAspect = image.size.width / image.size.height
         let containerAspect = containerSize.width / containerSize.height
@@ -8010,32 +8010,22 @@ struct CardCreatorView: View {
 private enum OnboardingPhase: Hashable {
     case marketing
     case tutorial
-    case paywall
 }
 
 struct OnboardingView: View {
     @Binding var hasCompletedOnboarding: Bool
     @State private var phase: OnboardingPhase = .marketing
     @State private var marketingIndex = 0
-    @State private var selectedPlan: PaywallPlan = .monthly
 
     var body: some View {
         ZStack {
             switch phase {
             case .marketing:
                 AnimatedOnboardingView(onContinue: {
-                    withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { phase = .paywall }
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { phase = .tutorial }
                 }, onStartTutorial: {
                     withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { phase = .tutorial }
                 })
-
-            case .paywall:
-                PaywallView(selectedPlan: $selectedPlan) {
-                    withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
-                        phase = .tutorial
-                    }
-                }
-
             case .tutorial:
                 InteractiveTutorialView(onFinish: {
                     PermissionManager.requestPermissions {
@@ -8115,60 +8105,7 @@ private struct TutorialOverview: View {
     }
 }
 
-private struct PaywallView: View {
-    @Binding var selectedPlan: PaywallPlan
-    let onPurchase: () -> Void
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 28) {
-                VStack(spacing: 12) {
-                    Text("Unlock Ambit Pro")
-                        .font(.system(.largeTitle, design: .monospaced, weight: .bold))
-                        .italic()
-                        .multilineTextAlignment(.center)
-                    Text("Professional color intelligence for teams who ship at scale.")
-                        .font(.system(.subheadline, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-
-                VStack(spacing: 16) {
-                    ForEach(PaywallPlan.allCases) { plan in
-                        PaywallPlanCard(plan: plan, isSelected: selectedPlan == plan)
-                            .onTapGesture { withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) { selectedPlan = plan } }
-                    }
-                }
-
-                VStack(alignment: .leading, spacing: 12) {
-                    ForEach(PaywallBenefit.all) { benefit in
-                        HStack(alignment: .top, spacing: 12) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                            Text(benefit.text)
-                                .font(.system(.subheadline, design: .monospaced))
-                                .foregroundStyle(.primary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                }
-
-                PrimaryCTAButton(title: selectedPlan.ctaTitle, action: onPurchase)
-
-                Button("Restore Purchases", action: { /* Hook into StoreKit restore */ })
-                    .font(.system(.footnote, design: .monospaced, weight: .medium))
-                    .foregroundStyle(.secondary)
-
-                Text("Payment will be charged to your Apple ID account. Cancel anytime in Settings. Lifetime access is a one-time purchase.")
-                    .font(.system(.footnote, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 36)
-        }
-    }
-}
+//
 
 private struct MarketingSlideView: View {
     let slide: MarketingSlide
@@ -8255,59 +8192,7 @@ private struct TutorialCard: View {
     }
 }
 
-private struct PaywallPlanCard: View {
-    let plan: PaywallPlan
-    let isSelected: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text(plan.title)
-                    .font(.system(.headline, design: .monospaced, weight: .bold))
-                Spacer()
-                if plan.badge != nil {
-                    Text(plan.badge!)
-                        .font(.system(.caption2, design: .monospaced, weight: .heavy))
-                        .padding(.vertical, 4)
-                        .padding(.horizontal, 8)
-                        .background(plan.tint.opacity(0.22))
-                        .clipShape(Capsule())
-                }
-            }
-            Text(plan.priceDescription)
-                .font(.system(.title3, design: .monospaced, weight: .bold))
-            Text(plan.subtitle)
-                .font(.system(.footnote, design: .monospaced))
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Divider()
-                .opacity(0.15)
-            VStack(alignment: .leading, spacing: 6) {
-                ForEach(plan.features, id: \.self) { feature in
-                    HStack(spacing: 8) {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 12, weight: .bold))
-                        Text(feature)
-                            .font(.system(.caption, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-        }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(Color(uiColor: .systemBackground))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 28, style: .continuous)
-                        .stroke(isSelected ? plan.tint : Color.primary.opacity(0.08), lineWidth: isSelected ? 2 : 1)
-                )
-        )
-        .shadow(color: plan.tint.opacity(isSelected ? 0.25 : 0.08), radius: isSelected ? 24 : 12, y: 8)
-        .scaleEffect(isSelected ? 1.02 : 1)
-    }
-}
+//
 
 private struct PrimaryCTAButton: View {
     let title: String
@@ -8400,83 +8285,9 @@ private struct TutorialModel: Identifiable {
     ]
 }
 
-private enum PaywallPlan: String, CaseIterable, Identifiable {
-    case monthly
-    case lifetime
+//
 
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .monthly: return "Ambit Monthly"
-        case .lifetime: return "Ambit Lifetime"
-        }
-    }
-
-    var subtitle: String {
-        switch self {
-        case .monthly: return "Perfect for iterating with new palettes every month." 
-        case .lifetime: return "Own the full studio forever with all future updates." 
-        }
-    }
-
-    var priceDescription: String {
-        switch self {
-        case .monthly: return "$3.99 / month"
-        case .lifetime: return "$25 one-time"
-        }
-    }
-
-    var features: [String] {
-        switch self {
-        case .monthly:
-            return [
-                "Unlimited analyzer and library usage",
-                "Linked palettes, gradients, and story cards",
-                "Monthly brand library expansions"
-            ]
-        case .lifetime:
-            return [
-                "Everything in Ambit Monthly",
-                "Priority access to new generators",
-                "Lifetime updates and advanced playbooks"
-            ]
-        }
-    }
-
-    var badge: String? {
-        switch self {
-        case .monthly: return "Best start"
-        case .lifetime: return "Best value"
-        }
-    }
-
-    var tint: Color {
-        switch self {
-        case .monthly: return .blue
-        case .lifetime: return .purple
-        }
-    }
-
-    var ctaTitle: String {
-        switch self {
-        case .monthly: return "Subscribe for $3.99 / month"
-        case .lifetime: return "Unlock Lifetime for $25"
-        }
-    }
-}
-
-private struct PaywallBenefit: Identifiable {
-    let id = UUID()
-    let text: String
-
-    static let all: [PaywallBenefit] = [
-        PaywallBenefit(text: "Unlimited analyzer sessions and library storage"),
-        PaywallBenefit(text: "Accessibility dashboards with WCAG scoring"),
-        PaywallBenefit(text: "Export-ready files for Figma, Adobe, and web"),
-        PaywallBenefit(text: "Monthly brand drops and strategy playbooks")
-    ]
-}
+//
 
 struct LoadingView: View {
     var body: some View {

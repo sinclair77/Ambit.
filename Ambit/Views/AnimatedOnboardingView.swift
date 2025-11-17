@@ -136,8 +136,8 @@ struct AnimatedOnboardingView: View {
                 }
                 Spacer()
             }
-            .rotationEffect(.degrees(previewAnim ? 360 : 0))
-            .onAppear { withAnimation(.linear(duration: 6).repeatForever(autoreverses: false)) { previewAnim.toggle() } }
+            .rotationEffect(.degrees(previewAnim ? 6 : -6))
+            .onAppear { withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true)) { previewAnim.toggle() } }
         case 3:
             HStack(spacing: 12) {
                 RoundedRectangle(cornerRadius: 12).fill(Color(.systemBackground)).overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.06)))

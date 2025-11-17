@@ -18,28 +18,40 @@ struct GradientView: View {
     @State private var shareGradient: SavedGradient?
     @State private var showShareSheet = false
 
+    // Unified preview sizing
+    private let previewMinHeight: CGFloat = 140
+    private let previewMaxHeight: CGFloat = 180
+
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 28) {
-                    gradientHero
-                    segmentPicker
-                    sortToolbar
-                    recentSearchSection
-                    gradientActions
+            ZStack {
+                // Uniform glassy scene background
+                LinearGradient(colors: [accentColor.opacity(0.18), accentColor.opacity(0.06)],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+                    .ignoresSafeArea()
+                    .overlay(.ultraThinMaterial)
 
-                    if !favoriteGradients.isEmpty {
-                        favoriteCarousel
-                    }
+                ScrollView {
+                    VStack(spacing: 28) {
+                        gradientHero
+                        segmentPicker
+                        sortToolbar
+                        recentSearchSection
+                        gradientActions
 
-                    if filteredGradients.isEmpty {
-                        GradientEmptyState(generateAction: viewModel.generateRandomGradient)
-                    } else {
-                        gradientGrid
+                        if !favoriteGradients.isEmpty {
+                            favoriteCarousel
+                        }
+
+                        if filteredGradients.isEmpty {
+                            GradientEmptyState(generateAction: viewModel.generateRandomGradient)
+                        } else {
+                            gradientGrid
+                        }
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 32)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 32)
             }
             .navigationTitle("Gradients")
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search gradients or HEX")
@@ -241,16 +253,7 @@ struct GradientView: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 32, style: .continuous)
-                .fill(LinearGradient(colors: [accentColor.opacity(0.18), accentColor.opacity(0.06)],
-                                     startPoint: .topLeading,
-                                     endPoint: .bottomTrailing))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 32, style: .continuous)
-                .stroke(accentColor.opacity(0.18), lineWidth: 1)
-        )
+        .glassContainer(cornerRadius: 32, tint: accentColor, intensity: 0.18, strokeOpacity: 0.18)
     }
 
     private var heroBadge: some View {
@@ -369,7 +372,9 @@ struct GradientView: View {
                     ForEach(favoriteGradients) { gradient in
                         FavoriteGradientBadge(gradient: gradient,
                                                shareAction: { share(gradient) },
-                                               favoriteAction: { toggleFavorite(gradient) })
+                                               favoriteAction: { toggleFavorite(gradient) },
+                                               previewMinHeight: 90,
+                                               previewMaxHeight: 100)
                     }
                 }
                 .padding(.horizontal, 2)
@@ -383,7 +388,9 @@ struct GradientView: View {
                 GradientTile(gradient: gradient,
                              shareAction: { share(gradient) },
                              deleteAction: { delete(gradient) },
-                             favoriteAction: { toggleFavorite(gradient) })
+                             favoriteAction: { toggleFavorite(gradient) },
+                             previewMinHeight: previewMinHeight,
+                             previewMaxHeight: previewMaxHeight)
             }
         }
     }
@@ -432,96 +439,101 @@ private enum GradientSegment: String, CaseIterable, Identifiable {
 }
 
 private struct GradientTile: View {
-        let gradient: SavedGradient
-        let shareAction: () -> Void
-        let deleteAction: () -> Void
-        let favoriteAction: () -> Void
+    let gradient: SavedGradient
+    let shareAction: () -> Void
+    let deleteAction: () -> Void
+    let favoriteAction: () -> Void
 
-        var body: some View {
-            VStack(alignment: .leading, spacing: 12) {
-                gradientPreview
-                metaInfo
-                actionRow
-            }
-            .padding(16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(Color(uiColor: .secondarySystemBackground).opacity(0.92))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(Color.primary.opacity(0.05), lineWidth: 1)
-            )
-            .contextMenu {
-                Button("Share", systemImage: "square.and.arrow.up", action: shareAction)
-                Button("Favorite", systemImage: "bookmark", action: favoriteAction)
-                Button("Delete", role: .destructive, action: deleteAction)
-            }
+    let previewMinHeight: CGFloat
+    let previewMaxHeight: CGFloat
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            gradientPreview
+            metaInfo
+            actionRow
         }
-        @Environment(\.ambitAccentColor) private var accentColor
-
-        private var gradientPreview: some View {
-            ZStack(alignment: .topTrailing) {
-                LinearGradient(colors: gradient.colors.map { Color(uiColor: $0) },
-                               startPoint: gradient.startPoint,
-                               endPoint: gradient.endPoint)
-                .frame(height: 140)
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                .shadow(color: .black.opacity(0.08), radius: 10, y: 6)
-
-                Button(action: favoriteAction) {
-                    Image(systemName: gradient.isFavorite ? "bookmark.fill" : "bookmark")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(gradient.isFavorite ? accentColor : .white)
-                        .padding(8)
-                        .background(.ultraThinMaterial, in: Circle())
-                }
-                .padding(10)
-                .buttonStyle(.plain)
-            }
-        }
-
-        private var metaInfo: some View {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(gradient.name)
-                    .font(.system(.headline, design: .monospaced, weight: .semibold))
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.8)
-                    .multilineTextAlignment(.leading)
-                Text("Stops \(gradient.colors.count) · \(Int(gradient.angle))°")
-                    .font(.system(.caption, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                NoHyphenationLabel(
-                    text: gradient.colors.map { $0.hexString }.joined(separator: " · "),
-                    font: UIFont.monospacedSystemFont(ofSize: 12, weight: .regular),
-                    color: UIColor.secondaryLabel
-                )
-                .lineLimit(2)
-            }
-        }
-
-        private var actionRow: some View {
-            HStack(spacing: 10) {
-                Button(action: shareAction) {
-                    Label("Share", systemImage: "square.and.arrow.up")
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.primary)
-
-                Button(role: .destructive, action: deleteAction) {
-                    Label("Delete", systemImage: "trash")
-                }
-                .buttonStyle(.bordered)
-            }
-            .font(.system(.caption, design: .monospaced, weight: .semibold))
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color(uiColor: .secondarySystemBackground).opacity(0.92))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(Color.primary.opacity(0.05), lineWidth: 1)
+        )
+        .contextMenu {
+            Button("Share", systemImage: "square.and.arrow.up", action: shareAction)
+            Button("Favorite", systemImage: "bookmark", action: favoriteAction)
+            Button("Delete", role: .destructive, action: deleteAction)
         }
     }
+    @Environment(\.ambitAccentColor) private var accentColor
+
+    private var gradientPreview: some View {
+        ZStack(alignment: .topTrailing) {
+            LinearGradient(colors: gradient.colors.map { Color(uiColor: $0) },
+                           startPoint: gradient.startPoint,
+                           endPoint: gradient.endPoint)
+            .frame(minHeight: previewMinHeight, maxHeight: previewMaxHeight)
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .shadow(color: .black.opacity(0.08), radius: 10, y: 6)
+
+            Button(action: favoriteAction) {
+                Image(systemName: gradient.isFavorite ? "bookmark.fill" : "bookmark")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(gradient.isFavorite ? accentColor : .white)
+                    .padding(8)
+                    .background(.ultraThinMaterial, in: Circle())
+            }
+            .padding(10)
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var metaInfo: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(gradient.name)
+                .font(.system(.headline, design: .monospaced, weight: .semibold))
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+                .multilineTextAlignment(.leading)
+            Text("Stops \(gradient.colors.count) · \(Int(gradient.angle))°")
+                .font(.system(.caption, design: .monospaced))
+                .foregroundStyle(.secondary)
+            NoHyphenationLabel(
+                text: gradient.colors.map { $0.hexString }.joined(separator: " · "),
+                font: UIFont.monospacedSystemFont(ofSize: 12, weight: .regular),
+                color: UIColor.secondaryLabel
+            )
+            .lineLimit(2)
+        }
+    }
+
+    private var actionRow: some View {
+        HStack(spacing: 10) {
+            Button(action: shareAction) {
+                Label("Share", systemImage: "square.and.arrow.up")
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.primary)
+
+            Button(role: .destructive, action: deleteAction) {
+                Label("Delete", systemImage: "trash")
+            }
+            .buttonStyle(.bordered)
+        }
+        .font(.system(.caption, design: .monospaced, weight: .semibold))
+    }
+}
 
 private struct FavoriteGradientBadge: View {
     let gradient: SavedGradient
     let shareAction: () -> Void
     let favoriteAction: () -> Void
+    let previewMinHeight: CGFloat
+    let previewMaxHeight: CGFloat
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -542,7 +554,7 @@ private struct FavoriteGradientBadge: View {
             LinearGradient(colors: gradient.colors.map { Color(uiColor: $0) },
                            startPoint: gradient.startPoint,
                            endPoint: gradient.endPoint)
-            .frame(height: 90)
+            .frame(minHeight: previewMinHeight, maxHeight: previewMaxHeight)
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
 
             Button(action: shareAction) {
@@ -724,15 +736,15 @@ private struct GradientEmptyState: View {
         }
         .padding(30)
         .frame(maxWidth: .infinity)
-                .background(
-                    RoundedRectangle(cornerRadius: 30, style: .continuous)
-                        .fill(LinearGradient(colors: [accentColor.opacity(0.14), accentColor.opacity(0.06)],
-                                             startPoint: .topLeading,
-                                             endPoint: .bottomTrailing))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 30, style: .continuous)
-                        .stroke(accentColor.opacity(0.2), lineWidth: 1)
-                )
+        .background(
+            RoundedRectangle(cornerRadius: 30, style: .continuous)
+                .fill(LinearGradient(colors: [accentColor.opacity(0.14), accentColor.opacity(0.06)],
+                                     startPoint: .topLeading,
+                                     endPoint: .bottomTrailing))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 30, style: .continuous)
+                .stroke(accentColor.opacity(0.2), lineWidth: 1)
+        )
     }
 }

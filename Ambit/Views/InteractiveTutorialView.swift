@@ -284,7 +284,7 @@ fileprivate struct RemixDemoView: View {
                         .fill(Color(uiColor: palette[i]))
                         .frame(width: 52, height: 52)
                         .shadow(radius: 4)
-                        .rotationEffect(.degrees(spin ? 5 : -5))
+                        .scaleEffect(spin ? 1.03 : 0.98)
                         .onTapGesture { withAnimation(.spring()) { palette.shuffle() } }
                 }
             }
@@ -292,14 +292,14 @@ fileprivate struct RemixDemoView: View {
                 .font(.system(.caption, design: .rounded))
                 .foregroundColor(.secondary)
         }
-        .onAppear {
+            .onAppear {
             if autoShuffle {
-                withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true)) { spin.toggle() }
+                withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) { spin.toggle() }
             }
         }
-    .onChange(of: autoShuffle) { _oldValue, value in
+            .onChange(of: autoShuffle) { _oldValue, value in
             if value {
-                withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true)) { spin.toggle() }
+                withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) { spin.toggle() }
             } else {
                 spin = false
             }

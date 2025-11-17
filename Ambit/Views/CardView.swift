@@ -18,28 +18,40 @@ struct CardView: View {
     @State private var shareCard: SavedCard?
     @State private var showShareSheet = false
 
+    // Unified preview sizing
+    private let previewMinHeight: CGFloat = 140
+    private let previewMaxHeight: CGFloat = 180
+
     var body: some View {
         NavigationStack {
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 28) {
-                    cardHero
-                    segmentPicker
-                    sortToolbar
-                    recentSearchSection
-                    cardActions
+            ZStack {
+                // Uniform glassy scene background
+                LinearGradient(colors: [accentColor.opacity(0.18), accentColor.opacity(0.06)],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+                    .ignoresSafeArea()
+                    .overlay(.ultraThinMaterial)
 
-                    if !favoriteCards.isEmpty {
-                        favoriteCarousel
-                    }
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 28) {
+                        cardHero
+                        segmentPicker
+                        sortToolbar
+                        recentSearchSection
+                        cardActions
 
-                    if filteredCards.isEmpty {
-                        CardEmptyState(generateAction: viewModel.generateRandomCard)
-                    } else {
-                        cardGrid
+                        if !favoriteCards.isEmpty {
+                            favoriteCarousel
+                        }
+
+                        if filteredCards.isEmpty {
+                            CardEmptyState(generateAction: viewModel.generateRandomCard)
+                        } else {
+                            cardGrid
+                        }
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 32)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 32)
             }
             .navigationTitle("Cards")
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search cards by date")
@@ -241,16 +253,7 @@ struct CardView: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 32, style: .continuous)
-                .fill(LinearGradient(colors: [accentColor.opacity(0.18), accentColor.opacity(0.06)],
-                                     startPoint: .topLeading,
-                                     endPoint: .bottomTrailing))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 32, style: .continuous)
-                .stroke(accentColor.opacity(0.18), lineWidth: 1)
-        )
+        .glassContainer(cornerRadius: 32, tint: accentColor, intensity: 0.18, strokeOpacity: 0.18)
     }
 
     private var heroBadge: some View {
@@ -356,7 +359,9 @@ struct CardView: View {
                     ForEach(favoriteCards) { card in
                         FavoriteCardBadge(card: card,
                                           shareAction: { share(card) },
-                                          favoriteAction: { toggleFavorite(card) })
+                                          favoriteAction: { toggleFavorite(card) },
+                                          previewMinHeight: 90,
+                                          previewMaxHeight: 100)
                     }
                 }
                 .padding(.horizontal, 2)
@@ -371,7 +376,9 @@ struct CardView: View {
                          shareAction: { share(card) },
                          duplicateAction: { duplicate(card) },
                          deleteAction: { delete(card) },
-                         favoriteAction: { toggleFavorite(card) })
+                         favoriteAction: { toggleFavorite(card) },
+                         previewMinHeight: previewMinHeight,
+                         previewMaxHeight: previewMaxHeight)
             }
         }
     }
@@ -426,6 +433,9 @@ private struct CardTile: View {
     let deleteAction: () -> Void
     let favoriteAction: () -> Void
 
+    let previewMinHeight: CGFloat
+    let previewMaxHeight: CGFloat
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             cardPreview
@@ -456,13 +466,13 @@ private struct CardTile: View {
                 if let image = card.uiImage {
                     Image(uiImage: image)
                         .resizable()
-                        .scaledToFill()
-                        .frame(height: 160)
+                        .scaledToFit()
+                        .frame(minHeight: previewMinHeight, maxHeight: previewMaxHeight)
                         .clipped()
                 } else {
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
                         .fill(Color.gray.opacity(0.2))
-                        .frame(height: 160)
+                        .frame(minHeight: previewMinHeight, maxHeight: previewMaxHeight)
                         .overlay(
                             Image(systemName: "doc.richtext")
                                 .font(.system(size: 28, weight: .semibold))
@@ -534,6 +544,8 @@ private struct FavoriteCardBadge: View {
     let card: SavedCard
     let shareAction: () -> Void
     let favoriteAction: () -> Void
+    let previewMinHeight: CGFloat
+    let previewMaxHeight: CGFloat
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -554,13 +566,13 @@ private struct FavoriteCardBadge: View {
                 if let image = card.uiImage {
                     Image(uiImage: image)
                         .resizable()
-                        .scaledToFill()
-                        .frame(height: 90)
+                        .scaledToFit()
+                        .frame(minHeight: previewMinHeight, maxHeight: previewMaxHeight)
                         .clipped()
                 } else {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .fill(Color.gray.opacity(0.2))
-                        .frame(height: 90)
+                        .frame(minHeight: previewMinHeight, maxHeight: previewMaxHeight)
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
@@ -649,16 +661,16 @@ private struct CardEmptyState: View {
         }
         .padding(30)
         .frame(maxWidth: .infinity)
-                .background(
-                    RoundedRectangle(cornerRadius: 30, style: .continuous)
-                        .fill(LinearGradient(colors: [accentColor.opacity(0.14), accentColor.opacity(0.06)],
-                                             startPoint: .topLeading,
-                                             endPoint: .bottomTrailing))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 30, style: .continuous)
-                        .stroke(accentColor.opacity(0.2), lineWidth: 1)
-                )
+        .background(
+            RoundedRectangle(cornerRadius: 30, style: .continuous)
+                .fill(LinearGradient(colors: [accentColor.opacity(0.14), accentColor.opacity(0.06)],
+                                     startPoint: .topLeading,
+                                     endPoint: .bottomTrailing))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 30, style: .continuous)
+                .stroke(accentColor.opacity(0.2), lineWidth: 1)
+        )
     }
 }
 

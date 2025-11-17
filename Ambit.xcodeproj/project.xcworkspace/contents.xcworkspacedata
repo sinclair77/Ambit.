@@ -4,4 +4,5 @@
    <FileRef
       location = "self:">
    </FileRef>
+   <!-- Removed workspace file references to files that were accidentally stored under Ambit.xcodeproj. These files are now in Ambit/Views/ -->
 </Workspace>

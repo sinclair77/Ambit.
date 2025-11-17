@@ -20,30 +20,37 @@ struct PaletteView: View {
     @State private var showShareSheet = false
     @State private var showImagePicker = false
     @State private var selectedImage: UIImage?
+    @State private var selectedPsychologyColor: Color = .accentColor
+
+    // Image preview sizing to guarantee “never cut off / not too small / not too big”
+    // Increased values for larger, clearer previews
+    private let previewMinHeight: CGFloat = 160
+    private let previewMaxHeight: CGFloat = 260
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 28) {
-                    paletteHero
-                    segmentPicker
-                    sortToolbar
-                    recentSearchSection
-                    importActionRow
+            ZStack {
+                // Liquid glass-style scene background
+                LinearGradient(colors: [accentColor.opacity(0.18), accentColor.opacity(0.06)],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+                    .ignoresSafeArea()
+                    .overlay(.ultraThinMaterial)
 
-                    if !favoritePalettes.isEmpty {
-                        favoritesCarousel
+                ScrollView {
+                    VStack(spacing: 28) {
+                        Group {
+                            paletteHero
+                            segmentPicker
+                            sortToolbar
+                            recentSearchSection
+                            importActionRow
+                        }
+                        colorPsychologySection
+                        palettesContent
                     }
-
-                    if filteredPalettes.isEmpty {
-                        PaletteEmptyState(importAction: { showImagePicker = true },
-                                          generateAction: viewModel.generateRandomPalette)
-                    } else {
-                        paletteGrid
-                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 32)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 32)
             }
             .navigationTitle("Palettes")
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search palettes or HEX")
@@ -123,7 +130,7 @@ struct PaletteView: View {
     }
 
     private var filteredPalettes: [SavedPalette] {
-        let base: [SavedPalette]
+        var base: [SavedPalette] = []
         switch selectedSegment {
         case .all:
             base = viewModel.palettes
@@ -132,10 +139,19 @@ struct PaletteView: View {
         case .imports:
             base = Array(viewModel.palettes.prefix(20))
         }
-        let sorted = sortOption.sort(base)
+
+        let sortedPalettes = sortOption.sort(base)
         let query = searchQuery
-        guard !query.isEmpty else { return sorted }
-        return sorted.filter { paletteMatchesSearch($0, query: query) }
+        if query.isEmpty {
+            return sortedPalettes
+        }
+        var filtered: [SavedPalette] = []
+        for palette in sortedPalettes {
+            if paletteMatchesSearch(palette, query: query) {
+                filtered.append(palette)
+            }
+        }
+        return filtered
     }
 
     private func paletteMatchesSearch(_ palette: SavedPalette, query: String) -> Bool {
@@ -257,16 +273,7 @@ struct PaletteView: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 32, style: .continuous)
-                .fill(LinearGradient(colors: [accentColor.opacity(0.18), accentColor.opacity(0.06)],
-                                     startPoint: .topLeading,
-                                     endPoint: .bottomTrailing))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 32, style: .continuous)
-                .stroke(accentColor.opacity(0.18), lineWidth: 1)
-        )
+        .glassContainer(cornerRadius: 32, tint: accentColor, intensity: 0.18, strokeOpacity: 0.18)
     }
 
     private var heroBadge: some View {
@@ -304,7 +311,7 @@ struct PaletteView: View {
     }
 
     private var segmentPicker: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+    ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
                 ForEach(PaletteSegment.allCases) { segment in
                     Button {
@@ -343,7 +350,9 @@ struct PaletteView: View {
                 }
             }
             .padding(.horizontal, 2)
-        }
+    }
+    // Ensure inner horizontal scroll takes gesture priority over the outer vertical scroll
+    .highPriorityGesture(DragGesture(minimumDistance: 1))
     }
 
     private var importActionRow: some View {
@@ -392,15 +401,42 @@ struct PaletteView: View {
     }
 
     private var paletteGrid: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 18)], spacing: 18) {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 200), spacing: 18)], spacing: 18) {
             ForEach(filteredPalettes) { palette in
                 PaletteTile(palette: palette,
                             shareAction: { presentShare(for: palette) },
                             duplicateAction: { duplicate(palette) },
                             deleteAction: { delete(palette) },
-                            favoriteAction: { toggleFavorite(palette) })
+                            favoriteAction: { toggleFavorite(palette) },
+                            previewMinHeight: previewMinHeight,
+                            previewMaxHeight: previewMaxHeight)
             }
         }
+    }
+
+    private var palettesContent: some View {
+        Group {
+            if !favoritePalettes.isEmpty {
+                favoritesCarousel
+            }
+            if filteredPalettes.isEmpty {
+                PaletteEmptyState(importAction: { showImagePicker = true },
+                                  generateAction: viewModel.generateRandomPalette)
+            } else {
+                paletteGrid
+            }
+        }
+    }
+
+    private var colorPsychologySection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Color Psychology")
+                .font(.system(.headline, design: .monospaced, weight: .bold))
+            ColorPicker("Choose a color for psychology", selection: $selectedPsychologyColor, supportsOpacity: false)
+                .frame(maxWidth: 320)
+        }
+        .padding(16)
+        .glassContainer(cornerRadius: 18, tint: accentColor, intensity: 0.12, strokeOpacity: 0.18)
     }
 
     private func presentShare(for palette: SavedPalette) {
@@ -434,14 +470,14 @@ private enum PaletteSegment: String, CaseIterable, Identifiable {
         switch self {
         case .all: return "All"
         case .favorites: return "Favorites"
-    case .imports: return "Recent"
+        case .imports: return "Recent"
         }
     }
     var icon: String {
         switch self {
         case .all: return "rectangle.grid.2x2"
         case .favorites: return "bookmark"
-    case .imports: return "clock"
+        case .imports: return "clock"
         }
     }
 }
@@ -513,14 +549,7 @@ private struct PaletteMetricGrid: View {
                 .padding(.vertical, 10)
                 .padding(.horizontal, 12)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(Color(uiColor: .systemBackground).opacity(0.9))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .stroke(Color.primary.opacity(0.04), lineWidth: 1)
-                )
+                .glassContainer(cornerRadius: 20, tint: accentColor, intensity: 0.12, strokeOpacity: 0.18)
             }
         }
     }
@@ -549,6 +578,10 @@ private struct FavoritePaletteCard: View {
     let palette: SavedPalette
     let shareAction: () -> Void
     let favoriteAction: () -> Void
+    @Environment(\.ambitAccentColor) private var accentColor
+
+    private let previewMinHeight: CGFloat = 140
+    private let previewMaxHeight: CGFloat = 180
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -566,14 +599,22 @@ private struct FavoritePaletteCard: View {
                 .buttonStyle(.plain)
             }
 
-            HStack(spacing: 0) {
-                ForEach(palette.uiColors.prefix(5).indices, id: \.self) { idx in
-                    Rectangle()
-                        .fill(Color(uiColor: palette.uiColors[idx]))
-                        .frame(width: 32, height: 44)
+            Group {
+                if let image = palette.uiImage {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(minHeight: previewMinHeight, maxHeight: previewMaxHeight)
+                        .clipped()
+                } else {
+                    LinearGradient(colors: palette.uiColors.isEmpty ? [.gray.opacity(0.4), .gray.opacity(0.2)] : palette.uiColors.map { Color(uiColor: $0) },
+                                   startPoint: .topLeading,
+                                   endPoint: .bottomTrailing)
+                        .frame(minHeight: previewMinHeight, maxHeight: previewMaxHeight)
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .shadow(color: .black.opacity(0.08), radius: 8, y: 5)
 
             Button(action: shareAction) {
                 Label("Share HEX Story", systemImage: "square.and.arrow.up")
@@ -584,16 +625,8 @@ private struct FavoritePaletteCard: View {
         }
         .padding(16)
         .frame(width: 220, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(.ultraThinMaterial)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(Color.primary.opacity(0.05), lineWidth: 1)
-        )
+        .glassContainer(cornerRadius: 24, tint: accentColor, intensity: 0.14, strokeOpacity: 0.18)
     }
-    @Environment(\.ambitAccentColor) private var accentColor
 }
 
 private struct PaletteTile: View {
@@ -602,6 +635,11 @@ private struct PaletteTile: View {
     let duplicateAction: () -> Void
     let deleteAction: () -> Void
     let favoriteAction: () -> Void
+
+    let previewMinHeight: CGFloat
+    let previewMaxHeight: CGFloat
+
+    @Environment(\.ambitAccentColor) private var accentColor
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -612,20 +650,7 @@ private struct PaletteTile: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemBackground).opacity(0.92))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(Color.primary.opacity(0.05), lineWidth: 1)
-        )
-        .contextMenu {
-            Button("Share", systemImage: "square.and.arrow.up", action: shareAction)
-            Button("Duplicate", systemImage: "plus.square.on.square", action: duplicateAction)
-            Button("Favorite", systemImage: "bookmark", action: favoriteAction)
-            Button("Delete", role: .destructive, action: deleteAction)
-        }
+        .glassContainer(cornerRadius: 24, tint: accentColor, intensity: 0.14, strokeOpacity: 0.18)
     }
 
     private var palettePreview: some View {
@@ -635,13 +660,13 @@ private struct PaletteTile: View {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFill()
-                        .frame(height: 110)
+                        .frame(minHeight: previewMinHeight, maxHeight: previewMaxHeight)
                         .clipped()
                 } else {
                     LinearGradient(colors: palette.uiColors.isEmpty ? [.gray.opacity(0.4), .gray.opacity(0.2)] : palette.uiColors.map { Color(uiColor: $0) },
                                    startPoint: .topLeading,
                                    endPoint: .bottomTrailing)
-                        .frame(height: 110)
+                        .frame(minHeight: previewMinHeight, maxHeight: previewMaxHeight)
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
@@ -652,30 +677,30 @@ private struct PaletteTile: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(palette.isFavorite ? accentColor : .white)
                     .padding(8)
-                    .background(.ultraThinMaterial, in: Circle())
             }
             .padding(10)
             .buttonStyle(.plain)
         }
     }
-    @Environment(\.ambitAccentColor) private var accentColor
 
     private var colorCapsules: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
+            HStack(spacing: 10) {
                 ForEach(palette.uiColors.indices, id: \.self) { index in
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .fill(Color(uiColor: palette.uiColors[index]))
-                        .frame(width: 40, height: 24)
+                        .frame(width: 48, height: 30)
                         .overlay(
                             RoundedRectangle(cornerRadius: 10)
                                 .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
                         )
+                        .contentShape(RoundedRectangle(cornerRadius: 10))
                 }
             }
-            .padding(.horizontal, 2)
+            .padding(.horizontal, 6)
         }
-        .frame(height: 28)
+    .frame(height: 36)
+    .padding(.vertical, 4)
     }
 
     private var metaInfo: some View {
@@ -757,6 +782,7 @@ struct PhotoPicker: UIViewControllerRepresentable {
         }
     }
 }
+
 private struct LargeActionButton: View {
     let title: String
     let icon: String
@@ -780,14 +806,14 @@ private struct LargeActionButton: View {
             .font(.system(.caption, design: .monospaced, weight: .semibold))
             .padding(.vertical, 12)
             .padding(.horizontal, 16)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(tint.opacity(0.15))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(tint.opacity(0.3), lineWidth: 1)
-        )
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(tint.opacity(0.15))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(tint.opacity(0.3), lineWidth: 1)
+            )
         }
         .frame(height: 44)
     }
@@ -821,15 +847,6 @@ private struct PaletteEmptyState: View {
         }
         .padding(30)
         .frame(maxWidth: .infinity)
-                .background(
-                    RoundedRectangle(cornerRadius: 30, style: .continuous)
-                        .fill(LinearGradient(colors: [accentColor.opacity(0.14), accentColor.opacity(0.06)],
-                                             startPoint: .topLeading,
-                                             endPoint: .bottomTrailing))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 30, style: .continuous)
-                        .stroke(accentColor.opacity(0.2), lineWidth: 1)
-                )
+        .glassContainer(cornerRadius: 30, tint: accentColor, intensity: 0.16, strokeOpacity: 0.2)
     }
 }
