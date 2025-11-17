@@ -5,7 +5,27 @@ struct PaywallView: View {
     let onDismiss: () -> Void
     @State private var expanded = true
     @State private var tryHighRes = false
-    @StateObject private var store = StoreKitManager.shared
+    @State private var selectedPlan: Plan = .monthly
+
+    enum Plan: String, CaseIterable, Identifiable {
+        case monthly
+        case lifetime
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .monthly: return "$3.99 / month"
+            case .lifetime: return "$25.00 one‑time"
+            }
+        }
+
+        var subtitle: String {
+            switch self {
+            case .monthly: return "Cancel anytime from Settings."
+            case .lifetime: return "Own the full studio forever."
+            }
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -13,6 +33,25 @@ struct PaywallView: View {
                 Text("Pro Kit")
                     .font(.system(.largeTitle, design: .rounded, weight: .bold))
                     .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Choose your plan")
+                        .font(.system(.headline, design: .rounded))
+
+                    Picker("", selection: $selectedPlan) {
+                        Text("Monthly").tag(Plan.monthly)
+                        Text("Lifetime").tag(Plan.lifetime)
+                    }
+                    .pickerStyle(.segmented)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(selectedPlan.title)
+                            .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                        Text(selectedPlan.subtitle)
+                            .font(.system(.footnote, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    }
+                }
 
                 DisclosureGroup(isExpanded: $expanded) {
                     VStack(alignment: .leading, spacing: 12) {
@@ -47,12 +86,10 @@ struct PaywallView: View {
 
                 VStack(spacing: 10) {
                     Button {
-                        Task {
-                            let ok = await store.purchasePro()
-                            if ok { onPurchased() }
-                        }
+                        // Mock purchase: instantly unlock for now.
+                        onPurchased()
                     } label: {
-                        Text(store.displayPrice ?? "Continue")
+                        Text(selectedPlan == .monthly ? "Continue with Monthly" : "Continue with Lifetime")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)

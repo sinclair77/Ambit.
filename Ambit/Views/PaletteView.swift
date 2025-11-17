@@ -16,16 +16,23 @@ struct PaletteView: View {
     @State private var didSyncSegment = false
     @State private var didSyncSort = false
     @State private var searchText: String = ""
-    @State private var sharePalette: SavedPalette?
-    @State private var showShareSheet = false
+    // share handled through ShareLink
     @State private var showImagePicker = false
     @State private var selectedImage: UIImage?
     @State private var selectedPsychologyColor: Color = .accentColor
+    @AppStorage("palettePreviewAspect") private var palettePreviewAspectRawValue = PalettePreviewAspect.medium.rawValue
+    @AppStorage("paletteColorOrdering") private var paletteColorOrderRawValue = PaletteColorOrder.original.rawValue
 
-    // Image preview sizing to guarantee “never cut off / not too small / not too big”
-    // Increased values for larger, clearer previews
-    private let previewMinHeight: CGFloat = 160
-    private let previewMaxHeight: CGFloat = 260
+    private var previewAspect: PalettePreviewAspect {
+        PalettePreviewAspect(rawValue: palettePreviewAspectRawValue) ?? .medium
+    }
+
+    private var colorOrder: PaletteColorOrder {
+        PaletteColorOrder(rawValue: paletteColorOrderRawValue) ?? .original
+    }
+
+    private var previewMinHeight: CGFloat { previewAspect.minHeight }
+    private var previewMaxHeight: CGFloat { previewAspect.maxHeight }
 
     var body: some View {
         NavigationStack {
@@ -42,6 +49,7 @@ struct PaletteView: View {
                             paletteHero
                             segmentPicker
                             sortToolbar
+                            layoutControls
                             recentSearchSection
                             importActionRow
                         }
@@ -52,6 +60,7 @@ struct PaletteView: View {
                     .padding(.top, 32)
                 }
             }
+            .liquidGlassTopLayer(tint: accentColor, height: 110)
             .navigationTitle("Palettes")
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search palettes or HEX")
             .toolbar {
@@ -95,11 +104,7 @@ struct PaletteView: View {
             viewModel.addPaletteFromImage(image)
             selectedImage = nil
         }
-        .sheet(isPresented: $showShareSheet) {
-            if let palette = sharePalette {
-                ShareSheet(items: [palette.shareSummary])
-            }
-        }
+        // removed old sheet (ShareSheet) in favor of native ShareLink
     }
 
     private var paletteRecentSearches: [String] {
@@ -199,6 +204,58 @@ struct PaletteView: View {
                         .fill(Color(uiColor: .secondarySystemGroupedBackground))
                 )
             }
+            Spacer()
+        }
+    }
+
+    private var layoutControls: some View {
+        HStack(spacing: 12) {
+            Menu {
+                ForEach(PalettePreviewAspect.allCases) { aspect in
+                    Button {
+                        palettePreviewAspectRawValue = aspect.rawValue
+                        HapticManager.instance.impact(style: .soft)
+                    } label: {
+                        Label(aspect.label, systemImage: aspect == previewAspect ? "checkmark" : "")
+                    }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "rectangle.grid.1x2")
+                    Text(previewAspect.label)
+                }
+                .font(.system(.caption, design: .monospaced, weight: .semibold))
+                .padding(.vertical, 8)
+                .padding(.horizontal, 14)
+                .background(
+                    Capsule()
+                        .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                )
+            }
+
+            Menu {
+                ForEach(PaletteColorOrder.allCases) { order in
+                    Button {
+                        paletteColorOrderRawValue = order.rawValue
+                        HapticManager.instance.impact(style: .soft)
+                    } label: {
+                        Label(order.label, systemImage: order == colorOrder ? "checkmark" : "")
+                    }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "line.3.horizontal.decrease")
+                    Text(colorOrder.label)
+                }
+                .font(.system(.caption, design: .monospaced, weight: .semibold))
+                .padding(.vertical, 8)
+                .padding(.horizontal, 14)
+                .background(
+                    Capsule()
+                        .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                )
+            }
+
             Spacer()
         }
     }
@@ -391,7 +448,6 @@ struct PaletteView: View {
                 HStack(spacing: 16) {
                     ForEach(favoritePalettes) { palette in
                         FavoritePaletteCard(palette: palette,
-                                            shareAction: { presentShare(for: palette) },
                                             favoriteAction: { toggleFavorite(palette) })
                     }
                 }
@@ -404,12 +460,12 @@ struct PaletteView: View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 200), spacing: 18)], spacing: 18) {
             ForEach(filteredPalettes) { palette in
                 PaletteTile(palette: palette,
-                            shareAction: { presentShare(for: palette) },
                             duplicateAction: { duplicate(palette) },
                             deleteAction: { delete(palette) },
                             favoriteAction: { toggleFavorite(palette) },
                             previewMinHeight: previewMinHeight,
-                            previewMaxHeight: previewMaxHeight)
+                            previewMaxHeight: previewMaxHeight,
+                            colorOrder: colorOrder)
             }
         }
     }
@@ -439,11 +495,7 @@ struct PaletteView: View {
         .glassContainer(cornerRadius: 18, tint: accentColor, intensity: 0.12, strokeOpacity: 0.18)
     }
 
-    private func presentShare(for palette: SavedPalette) {
-        sharePalette = palette
-        showShareSheet = true
-        HapticManager.instance.impact(style: .light)
-    }
+    // Share is now handled by ShareLink inline; no explicit presentShare required
 
     private func duplicate(_ palette: SavedPalette) {
         viewModel.addPalette(name: palette.name + " Copy", colors: palette.uiColors, image: palette.uiImage)
@@ -478,6 +530,65 @@ private enum PaletteSegment: String, CaseIterable, Identifiable {
         case .all: return "rectangle.grid.2x2"
         case .favorites: return "bookmark"
         case .imports: return "clock"
+        }
+    }
+}
+
+private enum PalettePreviewAspect: String, CaseIterable, Identifiable {
+    case compact
+    case medium
+    case tall
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .compact: return "Compact"
+        case .medium: return "Standard"
+        case .tall: return "Tall"
+        }
+    }
+
+    var minHeight: CGFloat {
+        switch self {
+        case .compact: return 120
+        case .medium: return 160
+        case .tall: return 220
+        }
+    }
+
+    var maxHeight: CGFloat {
+        switch self {
+        case .compact: return 180
+        case .medium: return 260
+        case .tall: return 320
+        }
+    }
+}
+
+private enum PaletteColorOrder: String, CaseIterable, Identifiable {
+    case original
+    case lightToDark
+    case darkToLight
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .original: return "Color Order"
+        case .lightToDark: return "Light → Dark"
+        case .darkToLight: return "Dark → Light"
+        }
+    }
+
+    func apply(to colors: [UIColor]) -> [UIColor] {
+        switch self {
+        case .original:
+            return colors
+        case .lightToDark:
+            return colors.sorted { $0.relativeLuminance < $1.relativeLuminance }
+        case .darkToLight:
+            return colors.sorted { $0.relativeLuminance > $1.relativeLuminance }
         }
     }
 }
@@ -576,7 +687,6 @@ private struct PaletteSectionHeader: View {
 
 private struct FavoritePaletteCard: View {
     let palette: SavedPalette
-    let shareAction: () -> Void
     let favoriteAction: () -> Void
     @Environment(\.ambitAccentColor) private var accentColor
 
@@ -616,7 +726,7 @@ private struct FavoritePaletteCard: View {
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .shadow(color: .black.opacity(0.08), radius: 8, y: 5)
 
-            Button(action: shareAction) {
+            ShareLink(item: palette.shareSummary) {
                 Label("Share HEX Story", systemImage: "square.and.arrow.up")
                     .font(.system(.caption, design: .monospaced, weight: .semibold))
             }
@@ -631,15 +741,19 @@ private struct FavoritePaletteCard: View {
 
 private struct PaletteTile: View {
     let palette: SavedPalette
-    let shareAction: () -> Void
     let duplicateAction: () -> Void
     let deleteAction: () -> Void
     let favoriteAction: () -> Void
 
     let previewMinHeight: CGFloat
     let previewMaxHeight: CGFloat
+    let colorOrder: PaletteColorOrder
 
     @Environment(\.ambitAccentColor) private var accentColor
+
+    private var orderedColors: [UIColor] {
+        colorOrder.apply(to: palette.uiColors)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -663,7 +777,8 @@ private struct PaletteTile: View {
                         .frame(minHeight: previewMinHeight, maxHeight: previewMaxHeight)
                         .clipped()
                 } else {
-                    LinearGradient(colors: palette.uiColors.isEmpty ? [.gray.opacity(0.4), .gray.opacity(0.2)] : palette.uiColors.map { Color(uiColor: $0) },
+                    let colors = orderedColors.isEmpty ? [UIColor.gray.withAlphaComponent(0.4), UIColor.gray.withAlphaComponent(0.2)] : orderedColors
+                    LinearGradient(colors: colors.map { Color(uiColor: $0) },
                                    startPoint: .topLeading,
                                    endPoint: .bottomTrailing)
                         .frame(minHeight: previewMinHeight, maxHeight: previewMaxHeight)
@@ -686,9 +801,9 @@ private struct PaletteTile: View {
     private var colorCapsules: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
-                ForEach(palette.uiColors.indices, id: \.self) { index in
+                ForEach(orderedColors.indices, id: \.self) { index in
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Color(uiColor: palette.uiColors[index]))
+                        .fill(Color(uiColor: orderedColors[index]))
                         .frame(width: 48, height: 30)
                         .overlay(
                             RoundedRectangle(cornerRadius: 10)
@@ -699,8 +814,9 @@ private struct PaletteTile: View {
             }
             .padding(.horizontal, 6)
         }
-    .frame(height: 36)
-    .padding(.vertical, 4)
+        .frame(height: 36)
+        .padding(.vertical, 4)
+        .highPriorityGesture(DragGesture(minimumDistance: 1))
     }
 
     private var metaInfo: some View {
@@ -732,7 +848,7 @@ private struct PaletteTile: View {
 
     @ViewBuilder
     private var actionButtons: some View {
-        Button(action: shareAction) {
+        ShareLink(item: palette.shareSummary) {
             Label("Share", systemImage: "square.and.arrow.up")
         }
         .buttonStyle(.borderedProminent)

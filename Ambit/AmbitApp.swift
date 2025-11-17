@@ -14,7 +14,7 @@ struct AmbitApp: App {
     
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            SplashContainerView()
         }
         .modelContainer(for: [SavedPalette.self, SavedCard.self, SavedGradient.self])
     }

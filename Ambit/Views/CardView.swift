@@ -44,7 +44,7 @@ struct CardView: View {
                         }
 
                         if filteredCards.isEmpty {
-                            CardEmptyState(generateAction: viewModel.generateRandomCard)
+                            CardEmptyState()
                         } else {
                             cardGrid
                         }
@@ -53,18 +53,9 @@ struct CardView: View {
                     .padding(.top, 32)
                 }
             }
+            .liquidGlassTopLayer(tint: accentColor, height: 106)
             .navigationTitle("Cards")
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search cards by date")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        viewModel.generateRandomCard()
-                        HapticManager.instance.impact(style: .soft)
-                    } label: {
-                        Label("Generate", systemImage: "sparkles")
-                    }
-                }
-            }
         }
         .onAppear {
             viewModel.setContext(modelContext)
@@ -89,8 +80,13 @@ struct CardView: View {
             addRecentSearch(term: searchQuery)
         }
         .sheet(isPresented: $showShareSheet) {
-            if let card = shareCard, let image = card.uiImage {
-                ShareSheet(items: [image])
+            if let card = shareCard {
+                if let image = card.uiImage {
+                    ShareSheet(items: [image])
+                } else {
+                    let summary = "Ambit card exported \(card.timestamp.formatted(date: .abbreviated, time: .shortened))"
+                    ShareSheet(items: [summary])
+                }
             }
         }
     }
@@ -341,13 +337,8 @@ struct CardView: View {
     }
 
     private var actionButtons: some View {
-        Group {
-            CardCapsuleActionButton(title: "Random Export", icon: "sparkles") {
-                viewModel.generateRandomCard()
-            }
-            CardCapsuleActionButton(title: "Refresh", icon: "arrow.clockwise") {
-                viewModel.loadCards()
-            }
+        CardCapsuleActionButton(title: "Refresh", icon: "arrow.clockwise") {
+            viewModel.loadCards()
         }
     }
 
@@ -358,10 +349,10 @@ struct CardView: View {
                 HStack(spacing: 16) {
                     ForEach(favoriteCards) { card in
                         FavoriteCardBadge(card: card,
-                                          shareAction: { share(card) },
-                                          favoriteAction: { toggleFavorite(card) },
-                                          previewMinHeight: 90,
-                                          previewMaxHeight: 100)
+                                              shareAction: { share(card) },
+                                              favoriteAction: { toggleFavorite(card) },
+                                              previewMinHeight: 110,
+                                              previewMaxHeight: 140)
                     }
                 }
                 .padding(.horizontal, 2)
@@ -466,7 +457,7 @@ private struct CardTile: View {
                 if let image = card.uiImage {
                     Image(uiImage: image)
                         .resizable()
-                        .scaledToFit()
+                        .scaledToFill()
                         .frame(minHeight: previewMinHeight, maxHeight: previewMaxHeight)
                         .clipped()
                 } else {
@@ -488,7 +479,7 @@ private struct CardTile: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(card.isFavorite ? accentColor : .white)
                     .padding(8)
-                    .background(.ultraThinMaterial, in: Circle())
+                    // No circular background; keep the icon clear and tappable for modern look
             }
             .padding(10)
             .buttonStyle(.plain)
@@ -566,7 +557,7 @@ private struct FavoriteCardBadge: View {
                 if let image = card.uiImage {
                     Image(uiImage: image)
                         .resizable()
-                        .scaledToFit()
+                        .scaledToFill()
                         .frame(minHeight: previewMinHeight, maxHeight: previewMaxHeight)
                         .clipped()
                 } else {
@@ -586,14 +577,14 @@ private struct FavoriteCardBadge: View {
         }
         .padding(16)
         .frame(width: 200, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(.ultraThinMaterial)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(Color.primary.opacity(0.05), lineWidth: 1)
-        )
+            .background(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(.ultraThinMaterial)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(Color.primary.opacity(0.05), lineWidth: 1)
+            )
     }
     @Environment(\.ambitAccentColor) private var accentColor
 }
@@ -639,7 +630,6 @@ private struct CardCapsuleActionButton: View {
 }
 
 private struct CardEmptyState: View {
-    let generateAction: () -> Void
     @Environment(\.ambitAccentColor) private var accentColor
 
     var body: some View {
@@ -651,13 +641,11 @@ private struct CardEmptyState: View {
                 .font(.system(.title3, design: .monospaced, weight: .bold))
                 .italic()
             NoHyphenationLabel(
-                text: "Generate a new export to see it here ready for share and favorites.",
+                text: "Create and export a card to see it here ready for share and favorites.",
                 font: UIFont.monospacedSystemFont(ofSize: 16, weight: .regular),
                 color: UIColor.secondaryLabel
             )
             .multilineTextAlignment(.center)
-            Button("Generate Card", action: generateAction)
-                .buttonStyle(.borderedProminent)
         }
         .padding(30)
         .frame(maxWidth: .infinity)

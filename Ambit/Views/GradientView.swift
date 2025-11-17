@@ -18,9 +18,19 @@ struct GradientView: View {
     @State private var shareGradient: SavedGradient?
     @State private var showShareSheet = false
 
-    // Unified preview sizing
-    private let previewMinHeight: CGFloat = 140
-    private let previewMaxHeight: CGFloat = 180
+    @AppStorage("gradientPreviewAspect") private var gradientPreviewAspectRawValue = GradientPreviewAspect.medium.rawValue
+    @AppStorage("gradientColorOrdering") private var gradientColorOrderRawValue = GradientColorOrder.original.rawValue
+
+    private var previewAspect: GradientPreviewAspect {
+        GradientPreviewAspect(rawValue: gradientPreviewAspectRawValue) ?? .medium
+    }
+
+    private var colorOrder: GradientColorOrder {
+        GradientColorOrder(rawValue: gradientColorOrderRawValue) ?? .original
+    }
+
+    private var previewMinHeight: CGFloat { previewAspect.minHeight }
+    private var previewMaxHeight: CGFloat { previewAspect.maxHeight }
 
     var body: some View {
         NavigationStack {
@@ -36,6 +46,7 @@ struct GradientView: View {
                         gradientHero
                         segmentPicker
                         sortToolbar
+                        layoutControls
                         recentSearchSection
                         gradientActions
 
@@ -53,6 +64,7 @@ struct GradientView: View {
                     .padding(.top, 32)
                 }
             }
+            .liquidGlassTopLayer(tint: accentColor, height: 110)
             .navigationTitle("Gradients")
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search gradients or HEX")
             .toolbar {
@@ -338,6 +350,58 @@ struct GradientView: View {
         }
     }
 
+    private var layoutControls: some View {
+        HStack(spacing: 12) {
+            Menu {
+                ForEach(GradientPreviewAspect.allCases) { aspect in
+                    Button {
+                        gradientPreviewAspectRawValue = aspect.rawValue
+                        HapticManager.instance.impact(style: .soft)
+                    } label: {
+                        Label(aspect.label, systemImage: aspect == previewAspect ? "checkmark" : "")
+                    }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "rectangle.grid.1x2")
+                    Text(previewAspect.label)
+                }
+                .font(.system(.caption, design: .monospaced, weight: .semibold))
+                .padding(.vertical, 8)
+                .padding(.horizontal, 14)
+                .background(
+                    Capsule()
+                        .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                )
+            }
+
+            Menu {
+                ForEach(GradientColorOrder.allCases) { order in
+                    Button {
+                        gradientColorOrderRawValue = order.rawValue
+                        HapticManager.instance.impact(style: .soft)
+                    } label: {
+                        Label(order.label, systemImage: order == colorOrder ? "checkmark" : "")
+                    }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "line.3.horizontal.decrease")
+                    Text(colorOrder.label)
+                }
+                .font(.system(.caption, design: .monospaced, weight: .semibold))
+                .padding(.vertical, 8)
+                .padding(.horizontal, 14)
+                .background(
+                    Capsule()
+                        .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                )
+            }
+
+            Spacer()
+        }
+    }
+
     private var gradientActions: some View {
         ViewThatFits {
             HStack(spacing: 12) { actionButtons }
@@ -390,7 +454,8 @@ struct GradientView: View {
                              deleteAction: { delete(gradient) },
                              favoriteAction: { toggleFavorite(gradient) },
                              previewMinHeight: previewMinHeight,
-                             previewMaxHeight: previewMaxHeight)
+                             previewMaxHeight: previewMaxHeight,
+                             colorOrder: colorOrder)
             }
         }
     }
@@ -447,6 +512,8 @@ private struct GradientTile: View {
     let previewMinHeight: CGFloat
     let previewMaxHeight: CGFloat
 
+    let colorOrder: GradientColorOrder
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             gradientPreview
@@ -472,8 +539,10 @@ private struct GradientTile: View {
     @Environment(\.ambitAccentColor) private var accentColor
 
     private var gradientPreview: some View {
-        ZStack(alignment: .topTrailing) {
-            LinearGradient(colors: gradient.colors.map { Color(uiColor: $0) },
+        let colors = colorOrder.apply(to: gradient.colors)
+        let displayColors = colors.isEmpty ? [UIColor.gray, UIColor.gray.withAlphaComponent(0.4)] : colors
+        return ZStack(alignment: .topTrailing) {
+            LinearGradient(colors: displayColors.map { Color(uiColor: $0) },
                            startPoint: gradient.startPoint,
                            endPoint: gradient.endPoint)
             .frame(minHeight: previewMinHeight, maxHeight: previewMaxHeight)
@@ -485,7 +554,7 @@ private struct GradientTile: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(gradient.isFavorite ? accentColor : .white)
                     .padding(8)
-                    .background(.ultraThinMaterial, in: Circle())
+                    // No circular background; keep the icon clear and tappable for modern look
             }
             .padding(10)
             .buttonStyle(.plain)
@@ -503,7 +572,7 @@ private struct GradientTile: View {
                 .font(.system(.caption, design: .monospaced))
                 .foregroundStyle(.secondary)
             NoHyphenationLabel(
-                text: gradient.colors.map { $0.hexString }.joined(separator: " · "),
+                text: colorOrder.apply(to: gradient.colors).map { $0.hexString }.joined(separator: " · "),
                 font: UIFont.monospacedSystemFont(ofSize: 12, weight: .regular),
                 color: UIColor.secondaryLabel
             )
@@ -513,7 +582,8 @@ private struct GradientTile: View {
 
     private var actionRow: some View {
         HStack(spacing: 10) {
-            Button(action: shareAction) {
+            let codes = colorOrder.apply(to: gradient.colors).map { $0.hexString }.joined(separator: ", ")
+            ShareLink(item: "\(gradient.name): \(codes)") {
                 Label("Share", systemImage: "square.and.arrow.up")
             }
             .buttonStyle(.borderedProminent)
@@ -551,13 +621,14 @@ private struct FavoriteGradientBadge: View {
                 .buttonStyle(.plain)
             }
 
-            LinearGradient(colors: gradient.colors.map { Color(uiColor: $0) },
+            let colors = GradientColorOrder.original.apply(to: gradient.colors)
+            LinearGradient(colors: colors.map { Color(uiColor: $0) },
                            startPoint: gradient.startPoint,
                            endPoint: gradient.endPoint)
             .frame(minHeight: previewMinHeight, maxHeight: previewMaxHeight)
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
 
-            Button(action: shareAction) {
+            ShareLink(item: shareSummary) {
                 Label("Share Stops", systemImage: "square.and.arrow.up")
                     .font(.system(.caption, design: .monospaced, weight: .semibold))
             }
@@ -576,6 +647,11 @@ private struct FavoriteGradientBadge: View {
         )
     }
     @Environment(\.ambitAccentColor) private var accentColor
+
+    private var shareSummary: String {
+        let codes = gradient.colors.map { $0.hexString }.joined(separator: ", ")
+        return "\(gradient.name): \(codes)"
+    }
 }
 
 private struct GradientMetric: Identifiable {
@@ -608,6 +684,61 @@ private enum GradientSortOption: String, CaseIterable, Identifiable {
             return gradients.sorted { $0.timestamp < $1.timestamp }
         case .nameAZ:
             return gradients.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        }
+    }
+}
+
+private enum GradientPreviewAspect: String, CaseIterable, Identifiable {
+    case compact
+    case medium
+    case tall
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .compact: return "Compact"
+        case .medium: return "Standard"
+        case .tall: return "Tall"
+        }
+    }
+
+    var minHeight: CGFloat {
+        switch self {
+        case .compact: return 110
+        case .medium: return 140
+        case .tall: return 200
+        }
+    }
+
+    var maxHeight: CGFloat {
+        switch self {
+        case .compact: return 150
+        case .medium: return 180
+        case .tall: return 260
+        }
+    }
+}
+
+private enum GradientColorOrder: String, CaseIterable, Identifiable {
+    case original
+    case reversed
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .original: return "Color Order"
+        case .reversed: return "Reverse Stops"
+        }
+    }
+
+    func apply(to colors: [UIColor]) -> [UIColor] {
+        switch self {
+        case .original:
+            return colors
+        case .reversed:
+            return colors.reversed()
         }
     }
 }

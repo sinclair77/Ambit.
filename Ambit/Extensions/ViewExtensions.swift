@@ -364,7 +364,7 @@ private struct CustomAccentColorKey: EnvironmentKey {
 }
 
 private struct AmbitThemeKey: EnvironmentKey {
-    static let defaultValue: AmbitAppearanceMode = .studio
+    static let defaultValue: AmbitAppearanceMode = .light
 }
 
 // MARK: - View Modifier for Custom Environment

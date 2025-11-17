@@ -16,7 +16,7 @@ final class SettingsViewModel: ObservableObject {
             defaults.set(true, forKey: hapticsKey)
         }
         if defaults.object(forKey: appearanceKey) == nil {
-            defaults.set(AmbitAppearanceMode.studio.rawValue, forKey: appearanceKey)
+            defaults.set(AmbitAppearanceMode.light.rawValue, forKey: appearanceKey)
         }
 
         hapticsEnabled = defaults.bool(forKey: hapticsKey)

@@ -2678,6 +2678,7 @@ struct NamedColorsView: View {
                     }
                     .padding(.horizontal, 20)
                 }
+                .highPriorityGesture(DragGesture(minimumDistance: 1))
             }
             .padding(.horizontal)
             
@@ -4850,7 +4851,7 @@ struct ContentView: View {
                         Group {
                             switch selectedTab {
                             case .analyzer:
-                                AnalyzerView(selectedTab: $selectedTab)
+                                AnalyzerRootView(selectedTab: $selectedTab)
                             case .palettes:
                                 PaletteView()
                             case .gradients:
@@ -4889,260 +4890,80 @@ struct ContentView: View {
 }
 
 // MARK: - Analyzer
-struct AnalyzerView: View {
+struct AnalyzerRootView: View {
     @Binding var selectedTab: RootTab
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.ambitAccentColor) private var accentColor
-    @AppStorage("numberOfColorsToExtract") private var numberOfColors: Int = 8
-    @AppStorage("avoidDarkColors") private var avoidDark: Bool = true
+    @AppStorage("numberOfColorsToExtract") private var analyzerNumberOfColors: Int = 8
+    @AppStorage("avoidDarkColors") private var analyzerAvoidDark: Bool = true
 
     @Query(sort: \SavedPalette.timestamp, order: .reverse, animation: .easeInOut) private var savedPalettes: [SavedPalette]
-    @State private var selectedItem: PhotosPickerItem?
-    @State private var selectedImage: UIImage?
-    @State private var extractedColors: [UIColor] = []
-    @State private var photoAccessStatus: PHAuthorizationStatus = .notDetermined
+    @State private var analyzerSelectedItem: PhotosPickerItem?
+    @State private var analyzerSelectedImage: UIImage?
+    @State private var analyzerExtractedColors: [UIColor] = []
+    @State private var analyzerPhotoAccessStatus: PHAuthorizationStatus = .notDetermined
 
-    @State private var isDropperActive = false
-    @State private var isLoading = false
-    @State private var isShowingSaveToast = false
+    @State private var analyzerIsDropperActive = false
+    @State private var analyzerIsLoading = false
+    @State private var analyzerIsShowingSaveToast = false
 
-    @State private var showSaveSheet = false
-    @State private var showCardCreator = false
-    @State private var showSettingsSheet = false
-    @State private var showPhotoPermissionAlert = false
+    @State private var analyzerShowSaveSheet = false
+    @State private var analyzerShowCardCreator = false
+    @State private var analyzerShowSettingsSheet = false
+    @State private var analyzerShowPhotoPermissionAlert = false
 
-    private var recentPaletteImports: [SavedPalette] {
+    private var analyzerRecentPaletteImports: [SavedPalette] {
         Array(savedPalettes.prefix(6))
     }
 
-    private var overlayBottomPadding: CGFloat {
-        recentPaletteImports.isEmpty ? 160 : 220
+    private var analyzerOverlayBottomPadding: CGFloat {
+        analyzerRecentPaletteImports.isEmpty ? 160 : 220
     }
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                if let selectedImage {
-                    Image(uiImage: selectedImage)
-                        .resizable()
-                        .scaledToFill()
-                        .blur(radius: 30)
-                        .opacity(0.3)
-                        .ignoresSafeArea()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    Color.clear
-                        .ignoresSafeArea()
+            VStack(spacing: 16) {
+                Spacer()
+                Image(systemName: "sparkles")
+                    .font(.system(size: 40, weight: .semibold))
+                    .foregroundColor(accentColor)
+                Text("Analyzer is temporarily unavailable in this build.")
+                    .font(.system(.body, design: .monospaced))
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.secondary)
+                Button {
+                    selectedTab = .palettes
+                } label: {
+                    Label("Open Palettes", systemImage: "paintpalette")
+                        .font(.system(.headline, design: .monospaced, weight: .semibold))
                 }
-
-                VStack(spacing: 0) {
-                    if let selectedImage {
-                        ImageWorkspace(image: selectedImage,
-                                       colors: $extractedColors,
-                                       isDropperActive: $isDropperActive)
-                            .transition(.scale.animation(.spring()))
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 10)
-                    } else {
-                        PlaceholderView()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    }
-
-                    if !extractedColors.isEmpty {
-                        VStack(spacing: 16) {
-                            Button(action: resampleColors) {
-                                HStack {
-                                    Image(systemName: "shuffle")
-                                    Text("Resample Colors")
-                                }
-                                .font(.system(.subheadline, design: .monospaced, weight: .semibold))
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 10)
-                                .background(Color.blue.opacity(0.1))
-                                .foregroundColor(.blue)
-                                .cornerRadius(12)
-                            }
-                            .buttonStyle(PlainButtonStyle())
-
-                            PaletteStripView(colors: $extractedColors)
-                        }
-                        .padding(.vertical, 8)
-                    }
-                }
-
-                overlayMessages
+                .buttonStyle(.borderedProminent)
+                Spacer()
             }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                analyzerDeck
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbar { toolbarContent }
-            .onAppear(perform: checkPhotoAccess)
-            .onChange(of: scenePhase) { _, newValue in
-                if newValue == .active { checkPhotoAccess() }
-            }
-            .onChange(of: selectedItem) { _, _ in analyzeNewItem() }
-            .alert("Enable Photo Access", isPresented: $showPhotoPermissionAlert, actions: {
-                Button("Open Settings") { openAppSettings() }
-                Button("Cancel", role: .cancel) { }
-            }, message: {
-                Text("Ambit needs access to your photo library to analyze images. You can enable access in Settings.")
-            })
-            .sheet(isPresented: $showSettingsSheet) { SettingsView() }
-            .sheet(isPresented: $showSaveSheet) {
-                SavePaletteSheetView(image: selectedImage,
-                                     colors: extractedColors,
-                                     showToast: $isShowingSaveToast)
-            }
-            .sheet(isPresented: $showCardCreator) {
-                CardCreatorView(originalImage: selectedImage,
-                                extractedColors: extractedColors)
-            }
+            .padding()
+            .navigationTitle("Analyzer")
         }
     }
 
     private var analyzerDeck: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            analyzerHero
-            analyzerQuickActions
-            if !recentPaletteImports.isEmpty {
-                analyzerRecentRail
-            }
-        }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 32, style: .continuous)
-                .fill(.ultraThinMaterial)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 32, style: .continuous)
-                .stroke(Color.primary.opacity(0.05), lineWidth: 1)
-        )
-        .shadow(color: .black.opacity(0.08), radius: 14, y: 8)
-        .padding(.horizontal)
-        .padding(.bottom, 12)
+        EmptyView()
     }
 
     private var analyzerHero: some View {
-        HStack(alignment: .center, spacing: 16) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(LinearGradient(colors: [accentColor.opacity(0.24), accentColor.opacity(0.08)],
-                                         startPoint: .topLeading,
-                                         endPoint: .bottomTrailing))
-                    .frame(width: 68, height: 68)
-                Image(systemName: selectedImage == nil ? "sparkles" : "camera.metering.spot")
-                    .font(.system(size: 28, weight: .semibold))
-                    .foregroundColor(accentColor)
-            }
-
-            VStack(alignment: .leading, spacing: 6) {
-             Text(selectedImage == nil ? "Kick off a new analysis" : "Active analyzer ready")
-                    .font(.system(.headline, design: .monospaced, weight: .semibold))
-             Text(selectedImage == nil ? "Import an image to map its palette."
-                 : "\(extractedColors.count) swatches sampled • toggle the dropper to refine.")
-                    .font(.system(.caption, design: .monospaced))
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Spacer()
-        }
+        EmptyView()
     }
 
     private var analyzerQuickActions: some View {
-        ViewThatFits {
-            HStack(spacing: 12) { analyzerQuickActionContent }
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) { analyzerQuickActionContent }
-                    .padding(.horizontal, 2)
-            }
-        }
+        EmptyView()
     }
 
     @ViewBuilder
     private var analyzerQuickActionContent: some View {
-        PhotosPicker(selection: $selectedItem, matching: .images) {
-            AnalyzerActionCard(icon: "photo.on.rectangle", title: "Import Photo", subtitle: "Use your camera roll", tint: .blue)
-        }
-
-        Button(action: toggleDropper) {
-            AnalyzerActionCard(icon: "eyedropper.halffull",
-                               title: "Color Dropper",
-                               subtitle: selectedImage == nil ? "Add an image first" : (isDropperActive ? "Tap the photo to sample" : "Tap to enable sampling"),
-                               tint: .teal,
-                               isDisabled: selectedImage == nil)
-        }
-        .disabled(selectedImage == nil)
-
-        Button {
-            showSaveSheet = true
-        } label: {
-            AnalyzerActionCard(icon: "bookmark.fill",
-                               title: "Save Palette",
-                               subtitle: extractedColors.isEmpty ? "Add colors first" : "\(extractedColors.count) shades ready",
-                               tint: .orange,
-                               isDisabled: extractedColors.isEmpty)
-        }
-        .disabled(extractedColors.isEmpty)
-
-        Button {
-            showCardCreator = true
-        } label: {
-            AnalyzerActionCard(icon: "rectangle.portrait.on.rectangle",
-                               title: "Make a Card",
-                               subtitle: extractedColors.isEmpty ? "Need swatches to export" : "Send palette to showcase",
-                               tint: .purple,
-                               isDisabled: extractedColors.isEmpty)
-        }
-        .disabled(extractedColors.isEmpty)
-
-        Button {
-            selectedTab = .palettes
-        } label: {
-            AnalyzerActionCard(icon: "paintpalette",
-                               title: "Open Palettes",
-                               subtitle: "Remix imported hues",
-                               tint: .pink)
-        }
+        EmptyView()
     }
 
     private var analyzerRecentRail: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Recent Imports")
-                    .font(.system(.subheadline, design: .monospaced, weight: .semibold))
-                Spacer()
-                Text("Latest \(recentPaletteImports.count) imports")
-                    .font(.system(.caption, design: .monospaced))
-                    .foregroundColor(.secondary)
-            }
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(recentPaletteImports) { palette in
-                        NavigationLink { PaletteDetailView(palette: palette) } label: {
-                            AnalyzerRecentImportCard(palette: palette)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal, 2)
-            }
-        }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemGroupedBackground).opacity(0.75))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(Color.primary.opacity(0.04), lineWidth: 1)
-        )
+        EmptyView()
     }
 
     @ToolbarContentBuilder
@@ -5153,136 +4974,22 @@ struct AnalyzerView: View {
                 .padding(.leading, -8)
                 .shadow(radius: 1)
         }
-        ToolbarItemGroup(placement: .topBarTrailing) {
-            if photoAccessStatus == .denied || photoAccessStatus == .restricted {
-                Button { showPhotoPermissionAlert = true } label: {
-                    Image(systemName: "photo.on.rectangle.angled")
-                        .foregroundStyle(.primary)
-                }
-            } else {
-                PhotosPicker(selection: $selectedItem, matching: .images) {
-                    Image(systemName: "photo.on.rectangle.angled")
-                        .foregroundStyle(.primary)
-                }
-            }
-
-            if selectedImage != nil {
-                Menu {
-                    Button { showSaveSheet = true } label: {
-                        Label("Save", systemImage: "square.and.arrow.down")
-                    }
-                    Button { isDropperActive.toggle() } label: {
-                        Label(isDropperActive ? "Disable Eyedropper" : "Enable Eyedropper",
-                              systemImage: "eyedropper.full")
-                    }
-                    Button { showCardCreator = true } label: {
-                        Label("Create Card", systemImage: "square.and.pencil")
-                    }
-                    Divider()
-                    Button { showSettingsSheet = true } label: {
-                        Label("Settings", systemImage: "gear")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .foregroundStyle(.primary)
-                }
-            }
-        }
     }
 
     @ViewBuilder
     private var overlayMessages: some View {
-        if isDropperActive {
-            VStack {
-                Spacer()
-                Text("Tap the image to add a color to the palette.")
-                    .font(.system(.body, design: .monospaced))
-                    .padding(12)
-                    .background(.thinMaterial)
-                    .cornerRadius(12)
-                    .padding(.bottom, overlayBottomPadding)
-            }
-        }
-
-        if isShowingSaveToast {
-            VStack {
-                Spacer()
-                Text("Saved to Library!")
-                    .font(.system(.body, design: .monospaced).weight(.bold))
-                    .padding(12)
-                    .background(Color.green)
-                    .foregroundStyle(.white)
-                    .cornerRadius(12)
-                    .padding(.bottom, overlayBottomPadding + 48)
-            }
-        }
-
-        if isLoading { LoadingView() }
+        EmptyView()
     }
 
-    private func toggleDropper() {
-        guard selectedImage != nil else { return }
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-            isDropperActive.toggle()
-        }
-        HapticManager.instance.impact(style: .soft)
-    }
+    private func toggleDropper() {}
 
-    private func resampleColors() {
-        guard let selectedImage else { return }
-        Task {
-            withAnimation { isLoading = true }
-            let colors = await ColorExtractor.extractRandomColors(from: selectedImage,
-                                                                  count: numberOfColors,
-                                                                  avoidDark: avoidDark)
-            await MainActor.run {
-                withAnimation(.spring()) {
-                    extractedColors = colors
-                }
-                withAnimation { isLoading = false }
-            }
-        }
-    }
+    private func resampleColors() {}
 
-    private func checkPhotoAccess() {
-        let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
-        photoAccessStatus = status
-        if status == .notDetermined {
-            PHPhotoLibrary.requestAuthorization(for: .readWrite) { status in
-                DispatchQueue.main.async {
-                    photoAccessStatus = status
-                    if status == .denied { showPhotoPermissionAlert = true }
-                }
-            }
-        }
-    }
+    private func checkPhotoAccess() {}
 
-    private func openAppSettings() {
-        guard let settingsURL = URL(string: UIApplication.openSettingsURLString) else { return }
-        UIApplication.shared.open(settingsURL)
-    }
+    private func openAppSettings() {}
 
-    private func analyzeNewItem() {
-        guard let selectedItem else { return }
-        Task {
-            withAnimation { isLoading = true }
-            HapticManager.instance.impact(style: .light)
-            if let data = try? await selectedItem.loadTransferable(type: Data.self),
-               let uiImage = ImageProcessor.loadImage(from: data) {
-                let colors = await ColorExtractor.extractRandomColors(from: uiImage,
-                                                                      count: numberOfColors,
-                                                                      avoidDark: avoidDark)
-                await MainActor.run {
-                    withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
-                        selectedImage = uiImage
-                        extractedColors = colors
-                    }
-                    HapticManager.instance.notification(type: .success)
-                }
-            }
-            withAnimation { isLoading = false }
-        }
-    }
+    private func analyzeNewItem() {}
 }
 
 // MARK: - Save Palette Sheet
@@ -6879,20 +6586,36 @@ fileprivate struct FavoriteStarButton: View {
 }
 
 fileprivate struct FavoriteShareButton: View {
+    var shareItem: Any?
     var action: () -> Void
     @Environment(\.ambitAccentColor) private var accentColor
+    @State private var isPresentingShare = false
+
+    var label: some View {
+        Image(systemName: "square.and.arrow.up")
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundColor(accentColor)
+            .padding(8)
+            .background(accentColor.opacity(0.12))
+            .clipShape(Circle())
+            .shadow(color: accentColor.opacity(0.25), radius: 4, y: 2)
+    }
 
     var body: some View {
-        Button(action: action) {
-            Image(systemName: "square.and.arrow.up")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(accentColor)
-                .padding(8)
-                .background(accentColor.opacity(0.12))
-                .clipShape(Circle())
-                .shadow(color: accentColor.opacity(0.25), radius: 4, y: 2)
+        Button {
+            if shareItem != nil {
+                isPresentingShare = true
+            }
+            action()
+        } label: {
+            label
         }
         .buttonStyle(.plain)
+        .sheet(isPresented: $isPresentingShare) {
+            if let shareItem {
+                ShareSheet(items: [shareItem])
+            }
+        }
     }
 }
 
@@ -7209,7 +6932,6 @@ struct LibraryGradientCard: View {
 
 struct FavoritePaletteTile: View {
     let palette: SavedPalette
-    @State private var showShare = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -7237,8 +6959,8 @@ struct FavoritePaletteTile: View {
         .shadow(color: .black.opacity(0.08), radius: 6, y: 4)
         .overlay(alignment: .topTrailing) {
             HStack(spacing: 6) {
-                FavoriteShareButton {
-                    showShare = true
+                FavoriteShareButton(shareItem: palette.shareSummary) {
+                    // no-op: share handled by ShareLink
                 }
                 FavoriteStarButton(isFavorite: palette.isFavorite) {
                     palette.isFavorite.toggle()
@@ -7246,15 +6968,12 @@ struct FavoritePaletteTile: View {
             }
             .padding(8)
         }
-        .sheet(isPresented: $showShare) {
-            ShareSheet(items: [palette.shareSummary])
-        }
+        // Share handled directly via ShareLink; sheet removed
     }
 }
 
 struct FavoriteGradientTile: View {
     let gradient: SavedGradient
-    @State private var showShare = false
 
     private var colors: [Color] {
         let converted = gradient.colors.map { Color(uiColor: $0) }
@@ -7290,8 +7009,8 @@ struct FavoriteGradientTile: View {
         .shadow(color: .black.opacity(0.08), radius: 6, y: 4)
         .overlay(alignment: .topTrailing) {
             HStack(spacing: 6) {
-                FavoriteShareButton {
-                    showShare = true
+                FavoriteShareButton(shareItem: shareSummary) {
+                    // no-op: share handled by ShareLink
                 }
                 FavoriteStarButton(isFavorite: gradient.isFavorite) {
                     gradient.isFavorite.toggle()
@@ -7299,15 +7018,12 @@ struct FavoriteGradientTile: View {
             }
             .padding(8)
         }
-        .sheet(isPresented: $showShare) {
-            ShareSheet(items: [shareSummary])
-        }
+        // Share handled directly via ShareLink; sheet removed
     }
 }
 
 struct FavoriteCardTile: View {
     let card: SavedCard
-    @State private var showShare = false
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
@@ -7325,8 +7041,8 @@ struct FavoriteCardTile: View {
             }
 
             HStack(spacing: 6) {
-                FavoriteShareButton {
-                    showShare = true
+                FavoriteShareButton(shareItem: card.uiImage) {
+                    // no-op: share handled by ShareLink
                 }
                 FavoriteStarButton(isFavorite: card.isFavorite) {
                     card.isFavorite.toggle()
@@ -7335,13 +7051,6 @@ struct FavoriteCardTile: View {
             .padding(8)
         }
         .shadow(color: .black.opacity(0.08), radius: 6, y: 4)
-        .sheet(isPresented: $showShare) {
-            if let image = card.uiImage {
-                ShareSheet(items: [image])
-            } else {
-                ShareSheet(items: ["Ambit card exported \(card.timestamp.formatted(date: .abbreviated, time: .shortened))"])
-            }
-        }
     }
 }
 
@@ -7551,7 +7260,7 @@ struct CardCreatorView: View {
                         }
                         .disabled(extractedColors.isEmpty)
                     } label: {
-                        Image(systemName: "ellipsis.circle")
+                        Image(systemName: "square.on.circle")
                     }
                 }
                 ToolbarItem(placement: .bottomBar) {
@@ -8412,4 +8121,4 @@ extension PalettePurpose: CaseIterable {
     }
 }
 
-
+    if (avg < 0.4) {
