@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# Run cleanup script so commit doesn't include files under Ambit.xcodeproj
+REPO_ROOT="$(cd "$(dirname "$0")/../../" && pwd)"
+$REPO_ROOT/scripts/cleanup_xcodeproj_sources.sh
+# Optionally run formatting or git add
+# git add -A
+
+exit 0
