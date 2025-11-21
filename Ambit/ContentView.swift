@@ -39,6 +39,7 @@ enum RootTab: Int, CaseIterable {
 
 struct ColorPsychologyGuideView: View {
     @State private var selectedIndex = 0
+    @State private var brightness: Double = 1.0
 
     private let colorPsychologies = ColorPsychologyProfile.samples
 
@@ -62,20 +63,46 @@ struct ColorPsychologyGuideView: View {
 
     // Picker to choose a psychology profile
     private var pickerSection: some View {
-        Picker(selection: $selectedIndex, label: Text("Profile")) {
-            ForEach(0..<colorPsychologies.count, id: \.self) { idx in
-                Text(colorPsychologies[idx].name).tag(idx)
+        VStack(spacing: 8) {
+            Text("Choose a color")
+                .font(.system(.caption, design: .monospaced, weight: .semibold))
+
+            // Wheel-style picker for a tactile, scannable list
+            Picker(selection: $selectedIndex, label: EmptyView()) {
+                ForEach(0..<colorPsychologies.count, id: \.self) { idx in
+                    HStack {
+                        Circle()
+                            .fill(colorPsychologies[idx].color)
+                            .frame(width: 28, height: 28)
+                        Text(colorPsychologies[idx].name)
+                            .font(.system(.body, design: .monospaced))
+                    }
+                    .tag(idx)
+                }
             }
+            .pickerStyle(.wheel)
+            .frame(height: 160)
+            .clipped()
+
+            // Brightness slider to tweak the selected color (fixes the non-working slider)
+            HStack(spacing: 12) {
+                Text("Dim")
+                    .font(.system(.caption2, design: .monospaced))
+                    .foregroundColor(.secondary)
+                Slider(value: $brightness, in: 0.4...1.2, step: 0.01)
+                Text("Bright")
+                    .font(.system(.caption2, design: .monospaced))
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal)
         }
-        .pickerStyle(.segmented)
-        .padding(.horizontal)
     }
 
     // Compact preview of the selected color profile
     private var colorPreviewSection: some View {
         VStack(spacing: 12) {
             RoundedRectangle(cornerRadius: 12)
-                .fill(selectedPsychology.color)
+                .fill(adjustedColor)
                 .frame(height: 100)
                 .shadow(radius: 6)
 
@@ -85,6 +112,12 @@ struct ColorPsychologyGuideView: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal)
+    }
+
+    // Adjust selected psychology color by current slider brightness
+    private var adjustedColor: Color {
+        let ui = UIColor(selectedPsychology.color)
+        return Color(ui.adjustedBrightness(by: brightness))
     }
 
     var body: some View {
@@ -4816,16 +4849,18 @@ struct AppNavTitle: View {
 
 struct ContentView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
-    @AppStorage("ambitAppearanceMode") private var storedAppearanceMode = AmbitAppearanceMode.studio.rawValue
+    @AppStorage("ambitAppearanceMode") private var storedAppearanceMode = AmbitAppearanceMode.light.rawValue
     @State private var selectedTab: RootTab = .analyzer
 
     private var appearanceMode: AmbitAppearanceMode {
         AmbitAppearanceMode.resolved(from: storedAppearanceMode)
     }
 
-    private var accentColor: Color {
-        appearanceMode.accentColor
-    }
+    // Use selectedAccentHue (from onboarding / settings) as the app-wide accent.
+    @AppStorage("selectedAccentHue") private var selectedAccentHue: Double = 0.55
+
+    // Compute a Color from the stored hue so the Settings slider updates the app immediately.
+    private var accentColor: Color { Color(hue: selectedAccentHue, saturation: 0.8, brightness: 0.95) }
     
     var body: some View {
         Group {
@@ -4923,25 +4958,97 @@ struct AnalyzerRootView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
-                Spacer()
-                Image(systemName: "sparkles")
-                    .font(.system(size: 40, weight: .semibold))
-                    .foregroundColor(accentColor)
-                Text("Analyzer is temporarily unavailable in this build.")
-                    .font(.system(.body, design: .monospaced))
-                    .multilineTextAlignment(.center)
-                    .foregroundColor(.secondary)
-                Button {
-                    selectedTab = .palettes
-                } label: {
-                    Label("Open Palettes", systemImage: "paintpalette")
-                        .font(.system(.headline, design: .monospaced, weight: .semibold))
+                // Header
+                HStack(spacing: 12) {
+                    AppNavTitle(text: "Analyzer", size: 28, weight: .bold)
+                    Spacer()
+                    // Photo picker
+                    PhotosPicker(selection: $analyzerSelectedItem, matching: .images, photoLibrary: .shared()) {
+                        Label("Upload Photo", systemImage: "photo.on.rectangle")
+                    }
+                    .controlSize(.regular)
+                    .buttonStyle(.borderedProminent)
                 }
-                .buttonStyle(.borderedProminent)
+
+                Divider()
+
+                // Image preview / workspace
+                if let image = analyzerSelectedImage {
+                    ImageWorkspace(image: image, colors: $analyzerExtractedColors, isDropperActive: $analyzerIsDropperActive)
+                        .frame(maxWidth: .infinity, maxHeight: 420)
+
+                    PaletteStripView(colors: $analyzerExtractedColors)
+
+                    HStack(spacing: 12) {
+                        Button(action: { resampleColors() }) {
+                            Label("Re-Analyze", systemImage: "arrow.triangle.2.circlepath")
+                        }
+                        .buttonStyle(.bordered)
+
+                        Button(action: { toggleDropper() }) {
+                            Label(analyzerIsDropperActive ? "Dropper: On" : "Dropper", systemImage: "eyedropper")
+                        }
+                        .buttonStyle(.bordered)
+
+                        Spacer()
+
+                        Button(action: { analyzerShowSaveSheet = true }) {
+                            Label("Save Palette", systemImage: "bookmark")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(analyzerExtractedColors.isEmpty)
+                    }
+                } else {
+                    VStack(spacing: 12) {
+                        Image(systemName: "photo")
+                            .font(.system(size: 80))
+                            .foregroundColor(accentColor.opacity(0.9))
+                        Text("Upload a photo to sample colors")
+                            .foregroundColor(.secondary)
+                        Button(action: { /* focus PhotosPicker - the control in header handles selection */ }) {
+                            Text("Tap Upload Photo")
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: 300)
+                }
+
                 Spacer()
             }
             .padding()
-            .navigationTitle("Analyzer")
+            .onChange(of: analyzerSelectedItem) { _, newItem in
+                guard let item = newItem else { return }
+                Task {
+                    // Load Data and convert to UIImage
+                    if let data = try? await item.loadTransferable(type: Data.self), let ui = UIImage(data: data) {
+                        let prepared = ui.normalizedImage().resizedIfNecessary(maxDimension: 2048)
+                        await MainActor.run {
+                            analyzerSelectedImage = prepared
+                            analyzerExtractedColors = []
+                        }
+                        await analyzeNewItem()
+                    }
+                }
+            }
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    AppNavTitle(text: "Ambit.", size: 44, weight: .black)
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Menu {
+                        Button("Open Settings") { analyzerShowSettingsSheet = true }
+                        Button("Open Photos Settings") { openAppSettings() }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                }
+            }
+            .sheet(isPresented: $analyzerShowSaveSheet) {
+                SavePaletteSheetView(image: analyzerSelectedImage, colors: analyzerExtractedColors, showToast: $analyzerIsShowingSaveToast)
+            }
+            .sheet(isPresented: $analyzerShowSettingsSheet) {
+                SettingsView()
+            }
         }
     }
 
@@ -4981,15 +5088,48 @@ struct AnalyzerRootView: View {
         EmptyView()
     }
 
-    private func toggleDropper() {}
+    private func toggleDropper() {
+        withAnimation { analyzerIsDropperActive.toggle() }
+    }
 
-    private func resampleColors() {}
+    private func resampleColors() {
+        Task { await analyzeNewItem() }
+    }
 
-    private func checkPhotoAccess() {}
+    private func checkPhotoAccess() {
+        PHPhotoLibrary.requestAuthorization(for: .readWrite) { status in
+            DispatchQueue.main.async {
+                analyzerPhotoAccessStatus = status
+                if status != .authorized && status != .limited {
+                    analyzerShowPhotoPermissionAlert = true
+                }
+            }
+        }
+    }
 
-    private func openAppSettings() {}
+    private func openAppSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        if UIApplication.shared.canOpenURL(url) {
+            UIApplication.shared.open(url)
+        }
+    }
 
-    private func analyzeNewItem() {}
+    private func analyzeNewItem() async {
+        guard let image = analyzerSelectedImage else { return }
+        analyzerIsLoading = true
+        let extractionTask = Task.detached(priority: .userInitiated) {
+            await ColorExtractor.extractProminentColorsWithConfidence(from: image, count: analyzerNumberOfColors, avoidDark: analyzerAvoidDark)
+        }
+
+        let result = await extractionTask.value
+
+        await MainActor.run {
+            analyzerExtractedColors = result.colors
+            analyzerIsLoading = false
+            // small haptic when done
+            HapticManager.instance.notification(type: .success)
+        }
+    }
 }
 
 // MARK: - Save Palette Sheet
@@ -7656,9 +7796,11 @@ struct CardCreatorView: View {
         guard let selectedImage else { return }
         isAnalyzingImage = true
         Task {
-            let colors = await Task.detached(priority: .userInitiated) {
-                ColorExtractor.extractProminentColors(from: selectedImage, in: nil, count: 8, avoidDark: true)
-            }.value
+            let extractionTask = Task.detached(priority: .userInitiated) {
+                await ColorExtractor.extractProminentColors(from: selectedImage, in: nil, count: 8, avoidDark: true)
+            }
+
+            let colors = await extractionTask.value
 
             await MainActor.run {
                 let fallback = colors.isEmpty ? Self.defaultPalette : colors
@@ -7711,8 +7853,18 @@ struct CardCreatorView: View {
         let content = AdvancedPaletteCardView(image: selectedImage, colors: palette, design: design)
             .frame(width: targetSize.width, height: targetSize.height)
         let renderer = ImageRenderer(content: content)
-        renderer.scale = UIScreen.main.scale
+        renderer.scale = currentScreenScale()
         if let img = renderer.uiImage { completion(img) }
+    }
+
+    private func currentScreenScale() -> CGFloat {
+        // Prefer a scene-backed screen (non-deprecated).
+        // Fall back to a trait-collection displayScale which is safe outside view context.
+        if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+            return scene.screen.scale
+        }
+        // Use trait collection fallback instead of the deprecated UIScreen.main access.
+        return UITraitCollection.current.displayScale
     }
 }
 
@@ -8120,5 +8272,3 @@ extension PalettePurpose: CaseIterable {
         }
     }
 }
-
-    if (avg < 0.4) {
