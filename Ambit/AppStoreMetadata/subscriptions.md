@@ -4,6 +4,8 @@ Use the content below to create two auto-renewable subscription products in App 
 
 Important: product IDs below are placeholders derived from the bundle id (`ethereal.focus.Ambit`). If your App Store Connect product IDs differ, either update `Ambit/Services/StoreConfig.swift` or place a `product_ids.json` in the app bundle (see README below).
 
+Developer ID: f84e6254-628a-49cb-9fe6-e0fe707536cc
+
 ---
 
 ## Product 1 — Weekly (recommended id: `ethereal.focus.Ambit.weekly`)

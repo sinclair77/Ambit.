@@ -8,6 +8,10 @@ import Foundation
 enum StoreConfig {
     /// App Store numeric Apple ID (optional, used for storefront links/screenshots)
     static let appAppleID = "6755366367"
+    
+    /// Developer identifier (useful for App Store / CI / metadata reference)
+    /// Provided by the user: UUID string representing the developer account
+    static let developerID = "f84e6254-628a-49cb-9fe6-e0fe707536cc"
 
     // Default (derived) product identifiers based on the bundle id.
     // Replace these with your real App Store Connect product IDs if they differ.
