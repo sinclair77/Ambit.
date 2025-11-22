@@ -1,0 +1,21 @@
+{
+  "configuration_version": 1,
+  "products": [
+    {
+      "id": "ethereal.focus.Ambit.weekly",
+      "type": "nonConsumable",
+      "displayName": "Ambit Weekly Subscription",
+      "subscription": {
+        "period": "P1W"
+      }
+    },
+    {
+      "id": "ethereal.focus.Ambit.monthly",
+      "type": "nonConsumable",
+      "displayName": "Ambit Monthly Subscription",
+      "subscription": {
+        "period": "P1M"
+      }
+    }
+  ]
+}
