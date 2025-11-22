@@ -5,24 +5,34 @@ struct PaywallView: View {
     let onDismiss: () -> Void
     @State private var expanded = true
     @State private var tryHighRes = false
-    @State private var selectedPlan: Plan = .monthly
+    @State private var selectedPlan: Plan = .weekly
+    @StateObject private var store = StoreKitManager.shared
 
     enum Plan: String, CaseIterable, Identifiable {
+        case weekly
         case monthly
-        case lifetime
         var id: String { rawValue }
 
+        // These display strings are intentionally explicit per your request. In production prefer localized price strings from StoreKit.
         var title: String {
             switch self {
-            case .monthly: return "$3.99 / month"
-            case .lifetime: return "$25.00 one‑time"
+            case .weekly: return "$1.99 / week"
+            case .monthly: return "$10.00 / month"
             }
         }
 
         var subtitle: String {
             switch self {
-            case .monthly: return "Cancel anytime from Settings."
-            case .lifetime: return "Own the full studio forever."
+            case .weekly: return "Billed weekly. Cancel anytime from Settings."
+            case .monthly: return "Billed monthly. Cancel anytime from Settings."
+            }
+        }
+
+        // Map to your App Store Connect product identifiers (replace with real ids)
+        var productId: String {
+            switch self {
+            case .weekly: return "com.yourapp.weekly"
+            case .monthly: return "com.yourapp.monthly"
             }
         }
     }
@@ -39,14 +49,21 @@ struct PaywallView: View {
                         .font(.system(.headline, design: .rounded))
 
                     Picker("", selection: $selectedPlan) {
+                        Text("Weekly").tag(Plan.weekly)
                         Text("Monthly").tag(Plan.monthly)
-                        Text("Lifetime").tag(Plan.lifetime)
                     }
                     .pickerStyle(.segmented)
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(selectedPlan.title)
-                            .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                        HStack(spacing: 8) {
+                            Text(selectedPlan.title)
+                            if let storePrice = store.displayPrice(for: selectedPlan.productId) {
+                                Text("(" + storePrice + ")")
+                                    .font(.system(.caption2, design: .rounded))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
                         Text(selectedPlan.subtitle)
                             .font(.system(.footnote, design: .rounded))
                             .foregroundStyle(.secondary)
@@ -86,10 +103,18 @@ struct PaywallView: View {
 
                 VStack(spacing: 10) {
                     Button {
-                        // Mock purchase: instantly unlock for now.
-                        onPurchased()
+                        // Attempt real purchase via StoreKitManager
+                        Task {
+                            let success = await store.purchase(productId: selectedPlan.productId)
+                            if success {
+                                onPurchased()
+                            } else {
+                                // fallback: dismiss
+                                onDismiss()
+                            }
+                        }
                     } label: {
-                        Text(selectedPlan == .monthly ? "Continue with Monthly" : "Continue with Lifetime")
+                        Text(selectedPlan == .monthly ? "Continue with Monthly" : "Continue with Weekly")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)

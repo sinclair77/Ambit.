@@ -59,6 +59,7 @@ private struct ThemePreviewButton: View {
 struct SettingsView: View {
     @StateObject private var viewModel = SettingsViewModel()
     @AppStorage("selectedAccentHue") private var selectedAccentHue: Double = 0.55
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = true
     private var hapticsBinding: Binding<Bool> { Binding(get: { viewModel.hapticsEnabled }, set: { viewModel.updateHaptics($0) }) }
     var body: some View {
         NavigationStack {
@@ -153,6 +154,19 @@ struct SettingsView: View {
                             Text("Privacy Policy")
                             Spacer()
                             Image(systemName: "arrow.up.right")
+                        }
+                        .font(.system(.body, design: .monospaced, weight: .medium))
+                        .foregroundColor(.accentColor)
+                    }
+                    Button(action: {
+                        // Re-show the onboarding flow
+                        hasCompletedOnboarding = false
+                    }) {
+                        HStack {
+                            Image(systemName: "questionmark.book.fill")
+                            Text("View Guide")
+                            Spacer()
+                            Image(systemName: "arrow.turn.up.right")
                         }
                         .font(.system(.body, design: .monospaced, weight: .medium))
                         .foregroundColor(.accentColor)
