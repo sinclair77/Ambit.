@@ -17,8 +17,8 @@ final class StoreKitManager: ObservableObject {
     }
 
     func load() async {
-        // Replace with your product identifiers from App Store Connect
-        let ids = ["com.yourapp.weekly", "com.yourapp.monthly"]
+        // Use centralized product ids from StoreConfig
+        let ids = [StoreConfig.weeklySubscription, StoreConfig.monthlySubscription]
         do {
             let fetched = try await Product.products(for: ids)
             self.products = fetched

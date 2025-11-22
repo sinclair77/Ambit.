@@ -31,8 +31,8 @@ struct PaywallView: View {
         // Map to your App Store Connect product identifiers (replace with real ids)
         var productId: String {
             switch self {
-            case .weekly: return "com.yourapp.weekly"
-            case .monthly: return "com.yourapp.monthly"
+                case .weekly: return StoreConfig.weeklySubscription
+                case .monthly: return StoreConfig.monthlySubscription
             }
         }
     }
